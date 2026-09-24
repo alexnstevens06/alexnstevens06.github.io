@@ -112,9 +112,22 @@ content/
 
 `SOURCES.md` / `MANIFEST.md` are for Progenitor bookkeeping; the site does not render them. **Do not commit `content/` from this bot** — Castellan stages the content pack.
 
-### Comparator media rules
+### Media rules
 
-Build copies of `content/` **exclude** `projects/comparator/home.jpg` and `browser.jpg` (never shipped to `dist/`). Gallery stems allowed: `research_case`, `research_list`, `alerts`, `research_map`. Architecture is served from a build-time copy of `architecture.svg` with `:61926` / `:3000` stripped (source files under `content/` are never modified).
+Galleries include every web image/video in a project or `content/timeline/<folder>/` directory.
+
+Optional README frontmatter:
+
+```yaml
+---
+hook: Short card blurb without a Hook: label
+cover: my-cover.jpg
+exclude:
+  - scratch.png
+---
+```
+
+Build-time default excludes (until removed from disk): `home.jpg`, `browser.jpg`. Comparator text/SVG copies strip `:61926` / `:3000`. Mermaid fences are replaced by diagram SVGs (existing or rendered via mermaid-cli); raw Mermaid is never shown.
 
 
 ### Mapping source of truth

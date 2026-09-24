@@ -1,30 +1,19 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import TodoBox from '../components/TodoBox.astro';
 import { loadAbout, syncContentToPublic } from '../lib/content';
 
 syncContentToPublic();
 const about = await loadAbout();
-const hasEmail = Boolean(about.email);
-const hasLinks = about.links.length > 0;
-const hasAny = hasEmail || hasLinks;
+const hasAny = Boolean(about.email || about.links.length);
 ---
 <BaseLayout title="Contact" description="Contact Alex Stevens.">
   <h1>Contact</h1>
-  <p class="lede">Ways to reach me. Links come only from content frontmatter — nothing invented.</p>
-
-  {!hasAny ? (
-    <TodoBox message="content pending — add email / links in content/about/bio.md frontmatter (email, github, linkedin, …) or content/contact.md." />
-  ) : (
+  {hasAny ? (
     <ul class="meta-list" style="margin-top: 1.5rem;">
-      {hasEmail ? (
+      {about.email && (
         <li>
           <strong>Email:</strong>{' '}
           <a href={`mailto:${about.email}`}>{about.email}</a>
-        </li>
-      ) : (
-        <li>
-          <TodoBox message="content pending — email. Add email: you@example.com to about or contact frontmatter." />
         </li>
       )}
       {about.links.map((link) => (
@@ -33,11 +22,8 @@ const hasAny = hasEmail || hasLinks;
           <a href={link.href} rel="noopener noreferrer">{link.href}</a>
         </li>
       ))}
-      {!hasLinks && (
-        <li>
-          <TodoBox message="content pending — social / portfolio links (github, linkedin, etc.)." />
-        </li>
-      )}
     </ul>
+  ) : (
+    <p class="lede">No public contact links published yet.</p>
   )}
 </BaseLayout>

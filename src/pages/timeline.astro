@@ -5,10 +5,11 @@ import { loadTimeline, syncContentToPublic } from '../lib/content';
 
 syncContentToPublic();
 const timeline = await loadTimeline();
-const gallery = [
-  ...(timeline.igniteLead ? [timeline.igniteLead] : []),
-  ...timeline.igniteMedia,
-];
+
+// Galleries matched to an entry are shown under that heading context via body + gallery sections.
+// Unmatched galleries get their own section labeled with the folder name (no invented captions).
+const unmatched = timeline.galleries.filter((g) => !g.matchedEntryTitle);
+const matched = timeline.galleries.filter((g) => g.matchedEntryTitle);
 ---
 <BaseLayout title="Timeline" description="Semester-by-semester path.">
   {!timeline.hasTimeline ? (
@@ -17,21 +18,43 @@ const gallery = [
     <article class="prose timeline-prose" set:html={timeline.bodyHtml} />
   )}
 
-  {gallery.length > 0 && (
-    <section aria-labelledby="ignite-heading" style="margin-top: 2.5rem;">
-      <h2 id="ignite-heading">SEC Ignite — LiteLock visuals</h2>
+  {matched.map((g) => (
+    <section aria-labelledby={`gal-${g.folder}`} style="margin-top: 2.5rem;">
+      <h2 id={`gal-${g.folder}`}>{g.matchedEntryTitle}</h2>
       <div class="gallery" role="list">
-        {gallery.map((item, i) => (
-          <figure role="listitem" class={i === 0 && timeline.igniteLead ? 'gallery__lead' : undefined}>
+        {g.media.map((item, i) => (
+          <figure role="listitem" class={i === 0 ? 'gallery__lead' : undefined}>
             <img
               src={item.relUrl}
-              alt={`Ignite / LiteLock — ${item.name}`}
+              alt=""
+              width="960"
               loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
             />
             <figcaption>{item.name}</figcaption>
           </figure>
         ))}
       </div>
     </section>
-  )}
+  ))}
+
+  {unmatched.map((g) => (
+    <section aria-labelledby={`gal-${g.folder}`} style="margin-top: 2.5rem;">
+      <h2 id={`gal-${g.folder}`}>{g.label}</h2>
+      <div class="gallery" role="list">
+        {g.media.map((item, i) => (
+          <figure role="listitem" class={i === 0 ? 'gallery__lead' : undefined}>
+            <img
+              src={item.relUrl}
+              alt=""
+              width="960"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>{item.name}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  ))}
 </BaseLayout>

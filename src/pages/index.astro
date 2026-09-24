@@ -18,12 +18,10 @@ const timeline = await loadTimeline();
         alt="Headshot of Alex Stevens"
         width="160"
         height="160"
+        loading="eager"
+        decoding="async"
       />
-    ) : (
-      <div class="avatar avatar--placeholder" role="img" aria-label="TODO: headshot pending">
-        TODO: headshot
-      </div>
-    )}
+    ) : null}
     <div>
       <h1 id="about-heading">Alex Stevens</h1>
       {about.hasBio && about.bioHtml ? (
@@ -32,43 +30,51 @@ const timeline = await loadTimeline();
         <TodoBox message="content pending — add content/about/bio.md (or README.md) with a short bio." />
       )}
       <div class="btn-row">
-        {about.resumeHref ? (
+        {about.resumeHref && (
           <a class="btn btn--primary" href={about.resumeHref}>Resume</a>
-        ) : (
-          <span class="btn btn--disabled" aria-disabled="true">Resume (TODO)</span>
         )}
         <a class="btn" href="/projects/">Projects</a>
+        <a class="btn" href="/timeline/">Timeline</a>
         <a class="btn" href="/contact/">Contact</a>
+        {about.github && (
+          <a class="btn" href={about.github} rel="noopener noreferrer">GitHub</a>
+        )}
       </div>
-      {!about.resumeHref && (
-        <TodoBox message="content pending — resume link. Add resume: URL to about frontmatter." />
-      )}
     </div>
   </section>
 
-  <section aria-labelledby="timeline-heading" style="margin-bottom: 2.5rem;">
-    <div class="section-head">
-      <h2 id="timeline-heading">Timeline</h2>
-      <a href="/timeline/">Full timeline</a>
-    </div>
-    {timeline.hasTimeline ? (
-      <p class="lede">Semester-by-semester path. Project deep-dives live under Projects.</p>
-    ) : (
-      <TodoBox message="content pending — add content/timeline.md." />
-    )}
-    {timeline.igniteLead && (
-      <figure class="timeline-teaser">
-        <img
-          src={timeline.igniteLead.relUrl}
-          alt="SEC Ignite LiteLock — capacitive cell charge/discharge"
-          loading="lazy"
-        />
-        <figcaption>
-          Lead visual from SEC Ignite (LiteLock). <a href="/timeline/">See the full timeline</a>.
-        </figcaption>
-      </figure>
-    )}
-  </section>
+  {timeline.teaserEntries.length > 0 && (
+    <section aria-labelledby="timeline-heading" style="margin-bottom: 2.5rem;">
+      <div class="section-head">
+        <h2 id="timeline-heading">Timeline</h2>
+        <a href="/timeline/">Full timeline</a>
+      </div>
+      <ul class="teaser-list">
+        {timeline.teaserEntries.map((e) => (
+          <li class={`teaser-item${e.thumb ? '' : ' teaser-item--text'}`}>
+            {e.thumb && (
+              <img
+                class="teaser-item__thumb"
+                src={e.thumb.relUrl}
+                alt=""
+                width="72"
+                height="72"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            <div class="teaser-item__text">
+              <p class="teaser-item__period">{e.period}</p>
+              <p class="teaser-item__title">
+                <a href="/timeline/">{e.title}</a>
+              </p>
+              <p class="teaser-item__blurb">{e.blurb}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 
   <section aria-labelledby="featured-heading">
     <div class="section-head">

@@ -7,16 +7,30 @@ interface Props {
 const { project } = Astro.props;
 ---
 <a class="card" href={`/projects/${project.def.slug}/`}>
-  <h3 class="card__title">{project.title}</h3>
-  {project.statusLabel && <span class="badge">{project.statusLabel}</span>}
-  {project.summary ? (
-    <p class="card__summary">{project.summary}</p>
-  ) : (
-    <p class="card__summary">Write-up pending.</p>
+  {project.cover && (
+    <div class="card__thumb">
+      <img
+        src={project.cover.relUrl}
+        alt=""
+        width="640"
+        height="360"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
   )}
-  {project.hasContent ? (
-    <span class="badge">View project</span>
-  ) : (
-    <span class="badge badge--todo">TODO: content pending</span>
-  )}
+  <div class="card__body">
+    <h3 class="card__title">{project.title}</h3>
+    {project.statusLabel && <span class="badge">{project.statusLabel}</span>}
+    {project.hook ? (
+      <p class="card__summary">{project.hook}</p>
+    ) : project.summary ? (
+      <p class="card__summary">{project.summary}</p>
+    ) : null}
+    {project.hasContent ? (
+      <span class="badge">View project</span>
+    ) : (
+      <span class="badge badge--todo">TODO: content pending</span>
+    )}
+  </div>
 </a>
