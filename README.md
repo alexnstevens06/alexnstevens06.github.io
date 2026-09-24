@@ -37,7 +37,7 @@ docker run --rm -u "$(id -u):$(id -g)" \
 
 ## Adding content (Progenitor)
 
-Do **not** invent copy in the site code. Drop files under `content/`; rebuild to pick them up. At build time, `content/` is copied into `public/content/` so images are served at `/content/...`.
+Do **not** invent copy in the site code. Drop files under `content/`; rebuild to pick them up. At build time raster images (`.jpg`/`.png`/`.webp`) are resized by `astro:assets` + sharp into AVIF/WebP at display size (cards ~400px, covers ~800px, gallery click-through ~1600px); only the variants a page uses ship in `dist/_astro/`. `scripts/sync-content.mjs` copies just SVG diagrams (ports stripped) and the splendid-hopper videos into `public/content/`. `content/` itself is never modified.
 
 ### About (`content/about/`)
 
@@ -114,7 +114,9 @@ content/
 
 ### Media rules
 
-Galleries include every web image/video in a project or `content/timeline/<folder>/` directory.
+Galleries appear only on project pages and include every web image in the project folder. The home page `/` is the single timeline (`content/timeline.md`, `### Title` blocks with `date` / `period` / `cover` / `link`, sorted newest first); each entry shows at most one cover, no galleries. `/timeline/`, `/projects/` and `/contact/` redirect to `/`. Videos render only on the splendid-hopper page (`preload="none"`, controls, no autoplay; poster = matching `<name>_still.jpg`). Project card covers come from README `cover:` frontmatter, else `content/timeline/COVERS.md`.
+
+Page weight budget: every page under ~250 KB on first load (HTML + referenced CSS/images). Check with `python3 scripts/measure-weight.py dist / /timeline/ /projects/`.
 
 Optional README frontmatter:
 

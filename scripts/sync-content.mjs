@@ -1,3 +1,11 @@
+/**
+ * Copy the few content files that are served as-is into public/content/:
+ *   - SVG diagrams (text, with :61926 / :3000 stripped); .mmd rendered via mermaid-cli if no sibling SVG
+ *   - Video files for pages that embed them (splendid-hopper only)
+ * Raster images are NOT copied: pages resize them at build time via astro:assets
+ * (src/lib/media.ts), so only optimized AVIF/WebP variants end up in dist.
+ * content/ itself is never modified.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -15,6 +23,10 @@ const DEFAULT_EXCLUDE = new Set([
   'browser.png',
 ]);
 
+/** Only these content folders may ship raw video. */
+const VIDEO_FOLDERS = new Set(['projects/splendid-hopper']);
+const VIDEO_EXT = new Set(['.mp4', '.webm']);
+
 function stripPortsInText(text) {
   return text.replace(/:61926/g, '').replace(/:3000/g, '');
 }
@@ -24,14 +36,11 @@ function readExcludeFromReadme(dir) {
   if (!readme) return new Set();
   const raw = fs.readFileSync(readme, 'utf8');
   const excl = new Set();
-  // frontmatter exclude: list or comma-separated
   if (raw.startsWith('---')) {
     const end = raw.indexOf('\n---', 3);
     if (end !== -1) {
-      const fm = raw.slice(3, end);
-      const lines = fm.split(/\r?\n/);
       let inExclude = false;
-      for (const line of lines) {
+      for (const line of raw.slice(3, end).split(/\r?\n/)) {
         if (/^exclude\s*:/i.test(line)) {
           const rest = line.replace(/^exclude\s*:\s*/i, '').trim();
           if (rest && !rest.startsWith('-')) {
@@ -53,25 +62,7 @@ function readExcludeFromReadme(dir) {
   return excl;
 }
 
-const SKIP_FILES = new Set(['sources.md', 'manifest.md', 'evidence.md']);
-
-function shouldSkip(relPosix, localExclude) {
-  const base = path.basename(relPosix).toLowerCase();
-  if (DEFAULT_EXCLUDE.has(base)) return true;
-  if (localExclude.has(base)) return true;
-  if (SKIP_FILES.has(base)) return true;
-  return false;
-}
-
-function ensureMermaidSvg(srcMmd, destSvg) {
-  // Prefer transforming an existing sibling .svg from content
-  const srcSvg = srcMmd.replace(/\.mmd$/i, '.svg');
-  if (fs.existsSync(srcSvg)) {
-    fs.writeFileSync(destSvg, stripPortsInText(fs.readFileSync(srcSvg, 'utf8')));
-    console.log('sync-content: port-stripped svg from', path.relative(CONTENT_ROOT, srcSvg));
-    return;
-  }
-  // Render via mermaid-cli docker image
+function renderMermaid(srcMmd, destSvg) {
   const tmpIn = path.join(ROOT, '.home', 'mmd-in', path.basename(srcMmd));
   const tmpOutDir = path.join(ROOT, '.home', 'mmd-out');
   fs.mkdirSync(path.dirname(tmpIn), { recursive: true });
@@ -81,68 +72,58 @@ function ensureMermaidSvg(srcMmd, destSvg) {
   const r = spawnSync(
     'docker',
     [
-      'run',
-      '--rm',
-      '-u',
-      `${process.getuid?.() ?? 1001}:${process.getgid?.() ?? 1001}`,
-      '-v',
-      `${path.dirname(tmpIn)}:/data/in:ro`,
-      '-v',
-      `${tmpOutDir}:/data/out`,
+      'run', '--rm',
+      '-u', `${process.getuid?.() ?? 1001}:${process.getgid?.() ?? 1001}`,
+      '-v', `${path.dirname(tmpIn)}:/data/in:ro`,
+      '-v', `${tmpOutDir}:/data/out`,
       'minlag/mermaid-cli',
-      '-i',
-      `/data/in/${path.basename(tmpIn)}`,
-      '-o',
-      `/data/out/${outName}`,
-      '-b',
-      'transparent',
+      '-i', `/data/in/${path.basename(tmpIn)}`,
+      '-o', `/data/out/${outName}`,
+      '-b', 'transparent',
     ],
     { encoding: 'utf8' },
   );
   const produced = path.join(tmpOutDir, outName);
   if (r.status === 0 && fs.existsSync(produced)) {
-    fs.copyFileSync(produced, destSvg);
+    fs.writeFileSync(destSvg, stripPortsInText(fs.readFileSync(produced, 'utf8')));
     console.log('sync-content: rendered', path.relative(CONTENT_ROOT, srcMmd));
   } else {
     console.warn('sync-content: mermaid-cli failed for', srcMmd, r.stderr || r.stdout);
-    // Still write stripped mmd next to dest for debugging; skip svg
   }
 }
 
 function copyTree(src, dest, rel = '', parentExclude = new Set()) {
-  fs.mkdirSync(dest, { recursive: true });
   const localExclude = new Set([...parentExclude, ...readExcludeFromReadme(src)]);
   for (const name of fs.readdirSync(src)) {
     const from = path.join(src, name);
-    const to = path.join(dest, name);
     const relPosix = rel ? `${rel}/${name}` : name;
-    const st = fs.statSync(from);
-    if (st.isDirectory()) {
-      copyTree(from, to, relPosix, localExclude);
-      continue;
-    }
-    if (shouldSkip(relPosix, localExclude)) {
-      console.log('sync-content: skip', relPosix);
+    if (fs.statSync(from).isDirectory()) {
+      copyTree(from, path.join(dest, name), relPosix, localExclude);
       continue;
     }
     const lower = name.toLowerCase();
-    if (lower.endsWith('.mmd')) {
+    if (DEFAULT_EXCLUDE.has(lower) || localExclude.has(lower)) continue;
+    const ext = path.extname(lower);
+    const to = path.join(dest, name);
+    if (ext === '.svg') {
+      fs.mkdirSync(dest, { recursive: true });
       fs.writeFileSync(to, stripPortsInText(fs.readFileSync(from, 'utf8')));
-      const destSvg = to.replace(/\.mmd$/i, '.svg');
-      ensureMermaidSvg(from, destSvg);
-      continue;
+    } else if (ext === '.mmd') {
+      const sibling = from.replace(/\.mmd$/i, '.svg');
+      if (!fs.existsSync(sibling)) {
+        fs.mkdirSync(dest, { recursive: true });
+        renderMermaid(from, to.replace(/\.mmd$/i, '.svg'));
+      }
+    } else if (VIDEO_EXT.has(ext) && VIDEO_FOLDERS.has(rel)) {
+      fs.mkdirSync(dest, { recursive: true });
+      fs.copyFileSync(from, to);
     }
-    if (lower.endsWith('.md') || lower.endsWith('.svg') || lower.endsWith('.txt') || lower.endsWith('.mmd')) {
-      fs.writeFileSync(to, stripPortsInText(fs.readFileSync(from, 'utf8')));
-      continue;
-    }
-    fs.copyFileSync(from, to);
   }
 }
 
 if (fs.existsSync(DEST)) fs.rmSync(DEST, { recursive: true, force: true });
+fs.mkdirSync(DEST, { recursive: true });
 if (!fs.existsSync(CONTENT_ROOT)) {
-  fs.mkdirSync(DEST, { recursive: true });
   console.log('sync-content: no content/ yet');
   process.exit(0);
 }

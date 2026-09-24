@@ -154,7 +154,7 @@ async function mdToHtml(md: string): Promise<string> {
 }
 
 function stripLeadingH1(md: string): string {
-  return md.replace(/^#\s+[^\n]+\n+/, '');
+  return md.replace(/^\s*#\s+[^\n]+\n+/, '');
 }
 
 function stripPorts(text: string): string {
@@ -260,7 +260,8 @@ function listMediaFiles(
 }
 
 function pickCover(data: Frontmatter, media: MediaItem[], diagrams: MediaItem[], folderRel: string): MediaItem | null {
-  const coverName = fmString(data, 'cover');
+  // README frontmatter wins; otherwise the headline cover listed in content/timeline/COVERS.md.
+  const coverName = fmString(data, 'cover') || loadTimelineCovers().get(path.basename(folderRel).toLowerCase()) || null;
   if (coverName) {
     const found =
       media.find((m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase()) ||
@@ -855,4 +856,161 @@ export async function loadTimeline(): Promise<TimelineContent> {
 /** Kept for pages that still call it; prebuild sync is authoritative. */
 export function syncContentToPublic(): void {
   // no-op during page render — sync runs in prebuild / astro integration
+}
+
+/* ───────────── Single-timeline home (v5) ───────────── */
+
+export type HomeEntry = {
+  title: string;
+  /** ISO YYYY-MM-DD; used for newest-first ordering. */
+  date: string;
+  period: string;
+  /** Inline HTML (from markdown) — one or two sentences. */
+  bodyHtml: string;
+  cover: MediaItem | null;
+  href: string | null;
+};
+
+const SEASON_MONTH: Record<string, string> = { winter: '12', spring: '02', summer: '06', fall: '09', autumn: '09' };
+
+/** Resolve a content-relative cover path (`projects/x/y.jpg`); missing/excluded/`none` → null. */
+function resolveCoverPath(raw: string | undefined): MediaItem | null {
+  if (!raw) return null;
+  const rel = raw.trim().replace(/^`|`$/g, '').replace(/^\/?(content\/)?/, '');
+  if (!rel || /^none$/i.test(rel)) return null;
+  const name = path.basename(rel);
+  const lower = name.toLowerCase();
+  if (DEFAULT_MEDIA_EXCLUDE.includes(lower) || IGNITE_SKIP.has(lower)) return null;
+  const ext = path.extname(lower);
+  if (!IMAGE_EXT.has(ext)) return null;
+  const full = path.join(CONTENT_ROOT, rel);
+  if (!full.startsWith(CONTENT_ROOT + path.sep) || !exists(full) || !fs.statSync(full).isFile()) return null;
+  const folder = path.dirname(rel);
+  const needsMatte =
+    MATTE_FOLDERS.has(path.basename(folder).toLowerCase()) || (ext === '.png' && pngHasAlpha(full));
+  return {
+    name,
+    relUrl: `/content/${rel.split('/').map(encodeURIComponent).join('/')}`,
+    kind: 'image',
+    needsMatte,
+  };
+}
+
+/** `projects/polite` → `/projects/polite/` when that project page exists; else null. */
+function resolveLink(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const v = raw.trim().replace(/^`|`$/g, '');
+  if (!v || /^none$/i.test(v)) return null;
+  const m = v.match(/^\/?projects\/([a-z0-9-]+)\/?$/i);
+  if (m && PROJECTS.some((p) => p.slug === m[1].toLowerCase())) return `/projects/${m[1].toLowerCase()}/`;
+  return null;
+}
+
+async function inlineMd(md: string): Promise<string> {
+  return (marked.parseInline(md.trim(), { async: true, gfm: true }) as Promise<string>);
+}
+
+/**
+ * Strict format (one block per entry):
+ *   ### Title
+ *   date: YYYY-MM-DD
+ *   period: Sep 2026 to present
+ *   cover: projects/polite/block_diagram.jpg   (or none)
+ *   link: projects/polite                      (or none)
+ *
+ *   Body sentence(s).
+ */
+function parseStrictTimeline(md: string): { title: string; fields: Record<string, string>; body: string }[] {
+  const out: { title: string; fields: Record<string, string>; body: string }[] = [];
+  const blocks = md.split(/^###\s+/m).slice(1);
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/);
+    const title = lines.shift()!.trim();
+    const fields: Record<string, string> = {};
+    const bodyLines: string[] = [];
+    let inFields = true;
+    for (const line of lines) {
+      const f = inFields && line.match(/^(date|period|cover|link)\s*:\s*(.*?)\s*$/i);
+      if (f) {
+        fields[f[1].toLowerCase()] = f[2].replace(/\s+\(or none\)$/i, '');
+        continue;
+      }
+      if (inFields && !line.trim()) continue;
+      inFields = false;
+      if (/^#{1,2}\s/.test(line)) break; // stop at a higher-level heading
+      bodyLines.push(line);
+    }
+    out.push({ title, fields, body: bodyLines.join('\n').trim() });
+  }
+  return out;
+}
+
+/** Best-effort ISO date from a legacy period heading like "Fall 2025" or "Winter break 2025–2026". */
+function dateFromPeriod(period: string): string {
+  const year = period.match(/(20\d\d)/)?.[1] ?? '2000';
+  const season = Object.keys(SEASON_MONTH).find((s) => period.toLowerCase().includes(s));
+  return `${year}-${season ? SEASON_MONTH[season] : '01'}-01`;
+}
+
+export async function loadHomeTimeline(): Promise<HomeEntry[]> {
+  const raw = readText(path.join(CONTENT_ROOT, 'timeline.md')) || '';
+  const entries: HomeEntry[] = [];
+  const order = new Map<HomeEntry, number>();
+  const add = (e: HomeEntry) => {
+    order.set(e, order.size);
+    entries.push(e);
+  };
+
+  if (/^###\s+/m.test(raw)) {
+    for (const e of parseStrictTimeline(raw)) {
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(e.fields.date || '') ? e.fields.date : '0000-00-00';
+      add({
+        title: e.title,
+        date,
+        period: e.fields.period || '',
+        bodyHtml: e.body ? await inlineMd(e.body.replace(/\s*\n\s*/g, ' ')) : '',
+        cover: resolveCoverPath(e.fields.cover),
+        href: resolveLink(e.fields.link),
+      });
+    }
+  } else if (raw.trim()) {
+    // Legacy "## Period / **Title** — blurb" format: reuse the v4 resolver.
+    const legacy = await loadTimeline();
+    for (const e of legacy.entries) {
+      const blurb = e.blurb
+        .replace(/\s*→\s*`[^`]*`(,\s*`[^`]*`)*/g, '')
+        .replace(/\s*Cover:\s*`[^`]*`\s*(\([^)]*\))?\.?/gi, '')
+        .trim();
+      add({
+        title: e.title,
+        date: dateFromPeriod(e.period),
+        period: e.period,
+        bodyHtml: await inlineMd(blurb),
+        cover: e.thumb,
+        href: e.projectSlug ? `/projects/${e.projectSlug}/` : null,
+      });
+    }
+  }
+
+  // Newest first; for equal dates, later-in-document first for legacy (chronological) files,
+  // document order for strict files (already written newest-first).
+  const strict = /^###\s+/m.test(raw);
+  entries.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    const d = order.get(a)! - order.get(b)!;
+    return strict ? d : -d;
+  });
+  return entries;
+}
+
+/** First sentence of the about bio (plain text), for the one-line header. */
+export function loadBioLine(): string | null {
+  const bioPath = findFile(path.join(CONTENT_ROOT, 'about'), ['bio.md', 'README.md', 'readme.md', 'about.md', 'index.md']);
+  if (!bioPath) return null;
+  const body = stripLeadingH1(parseFrontmatter(readText(bioPath) || '').body);
+  const para = body.split(/\n\s*\n/).map((p) => p.trim()).find((p) => p && !/^[#>|-]/.test(p));
+  if (!para) return null;
+  const plain = para.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`]/g, '').replace(/\s+/g, ' ');
+  const m = plain.match(/^(.+?[.!?])(\s|$)/);
+  return (m ? m[1] : plain).trim();
 }

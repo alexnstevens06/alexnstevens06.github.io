@@ -6,8 +6,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  /** Home renders its own intro instead of the site header. */
+  bare?: boolean;
 }
-const { title, description = 'Personal site of Alex Stevens.' } = Astro.props;
+const { title, description = 'Personal site of Alex Stevens.', bare = false } = Astro.props;
 const fullTitle = title === 'Alex Stevens' ? title : `${title} · Alex Stevens`;
 ---
 <!doctype html>
@@ -16,12 +18,11 @@ const fullTitle = title === 'Alex Stevens' ? title : `${title} · Alex Stevens`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{fullTitle}</title>
   </head>
   <body>
-    <Header />
+    {!bare && <Header />}
     <main id="main" class="page">
       <slot />
     </main>

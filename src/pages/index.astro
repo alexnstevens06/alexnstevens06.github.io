@@ -1,92 +1,62 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import TodoBox from '../components/TodoBox.astro';
-import ProjectCard from '../components/ProjectCard.astro';
-import { loadAbout, loadAllProjects, loadTimeline, syncContentToPublic } from '../lib/content';
+import Img from '../components/Img.astro';
+import { loadAbout, loadBioLine, loadHomeTimeline } from '../lib/content';
 
-syncContentToPublic();
 const about = await loadAbout();
-const projects = await loadAllProjects();
-const timeline = await loadTimeline();
+const bioLine = loadBioLine();
+const entries = await loadHomeTimeline();
+const links = [
+  ...(about.email ? [{ label: 'Email', href: `mailto:${about.email}` }] : []),
+  ...about.links,
+  ...(about.resumeHref ? [{ label: 'Resume', href: about.resumeHref }] : []),
+];
 ---
-<BaseLayout title="Alex Stevens" description="About Alex Stevens and selected projects.">
-  <section class="hero" aria-labelledby="about-heading">
-    {about.headshotRelUrl ? (
-      <img
-        class="avatar"
-        src={about.headshotRelUrl}
-        alt="Headshot of Alex Stevens"
-        width="160"
-        height="160"
-        loading="eager"
-        decoding="async"
-      />
-    ) : null}
+<BaseLayout title="Alex Stevens" description={bioLine || 'Alex Stevens — timeline of work and projects.'} bare>
+  <header class="intro">
+    {about.headshotRelUrl && (
+      <Img class="intro__photo" src={about.headshotRelUrl} width={144} alt="Headshot of Alex Stevens" eager />
+    )}
     <div>
-      <h1 id="about-heading">Alex Stevens</h1>
-      {about.hasBio && about.bioHtml ? (
-        <div class="prose" set:html={about.bioHtml} />
-      ) : (
-        <TodoBox message="content pending — add content/about/bio.md (or README.md) with a short bio." />
+      <h1 class="intro__name">Alex Stevens</h1>
+      {bioLine && <p class="intro__bio">{bioLine}</p>}
+      {links.length > 0 && (
+        <p class="intro__links">
+          {links.map((l) => (
+            <a href={l.href} rel={l.href.startsWith('http') ? 'noopener noreferrer' : undefined}>{l.label}</a>
+          ))}
+        </p>
       )}
-      <div class="btn-row">
-        {about.resumeHref && (
-          <a class="btn btn--primary" href={about.resumeHref}>Resume</a>
-        )}
-        <a class="btn" href="/projects/">Projects</a>
-        <a class="btn" href="/timeline/">Timeline</a>
-        <a class="btn" href="/contact/">Contact</a>
-        {about.github && (
-          <a class="btn" href={about.github} rel="noopener noreferrer">GitHub</a>
-        )}
-      </div>
     </div>
-  </section>
+  </header>
 
-  {timeline.teaserEntries.length > 0 && (
-    <section aria-labelledby="timeline-heading" style="margin-bottom: 2.5rem;">
-      <div class="section-head">
-        <h2 id="timeline-heading">Timeline</h2>
-        <a href="/timeline/">Full timeline →</a>
-      </div>
-      <p class="teaser-note">Selected stops from 2024 → 2026. Open the full timeline for every semester.</p>
-      <ul class="teaser-list">
-        {timeline.teaserEntries.map((e) => {
-          const href = e.projectSlug ? `/projects/${e.projectSlug}/` : '/timeline/';
-          return (
-            <li class={`teaser-item${e.thumb ? '' : ' teaser-item--text'}`}>
-              {e.thumb && (
-                <img
-                  class:list={['teaser-item__thumb', e.thumb.needsMatte && 'teaser-item__thumb--matte']}
-                  src={e.thumb.relUrl}
-                  alt=""
-                  width="72"
-                  height="72"
-                  loading="lazy"
-                  decoding="async"
-                />
+  {entries.length === 0 ? (
+    <TodoBox message="content pending — add content/timeline.md." />
+  ) : (
+    <ol class="tl">
+      {entries.map((e, i) => {
+        const Tag = e.href ? 'a' : 'div';
+        return (
+          <li>
+            <Tag class:list={['tl__row', e.cover ? 'tl__row--cover' : 'tl__row--text']} href={e.href ?? undefined}>
+              {e.cover ? (
+                <div class:list={['tl__media', e.cover.needsMatte && 'matte']}>
+                  <Img src={e.cover.relUrl} width={900} eager={i === 0} />
+                </div>
+              ) : (
+                e.period && <p class="tl__period tl__period--side">{e.period}</p>
               )}
-              <div class="teaser-item__text">
-                <p class="teaser-item__period">{e.period}</p>
-                <p class="teaser-item__title">
-                  <a href={href}>{e.title}</a>
-                </p>
-                <p class="teaser-item__blurb">{e.blurb}</p>
+              <div class="tl__text">
+                <h2 class="tl__title">{e.title}</h2>
+                {e.cover && e.period && <p class="tl__period">{e.period}</p>}
+                {e.bodyHtml && <p class="tl__body" set:html={e.bodyHtml} />}
+                {e.href && <span class="tl__more">View project →</span>}
               </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+            </Tag>
+          </li>
+        );
+      })}
+    </ol>
   )}
-
-  <section aria-labelledby="featured-heading">
-    <div class="section-head">
-      <h2 id="featured-heading">Projects</h2>
-      <a href="/projects/">View all</a>
-    </div>
-    <div class="project-grid">
-      {projects.slice(0, 6).map((p) => <ProjectCard project={p} />)}
-    </div>
-  </section>
 </BaseLayout>
