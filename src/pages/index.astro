@@ -47,31 +47,35 @@ const timeline = await loadTimeline();
     <section aria-labelledby="timeline-heading" style="margin-bottom: 2.5rem;">
       <div class="section-head">
         <h2 id="timeline-heading">Timeline</h2>
-        <a href="/timeline/">Full timeline</a>
+        <a href="/timeline/">Full timeline →</a>
       </div>
+      <p class="teaser-note">Selected stops from 2024 → 2026. Open the full timeline for every semester.</p>
       <ul class="teaser-list">
-        {timeline.teaserEntries.map((e) => (
-          <li class={`teaser-item${e.thumb ? '' : ' teaser-item--text'}`}>
-            {e.thumb && (
-              <img
-                class="teaser-item__thumb"
-                src={e.thumb.relUrl}
-                alt=""
-                width="72"
-                height="72"
-                loading="lazy"
-                decoding="async"
-              />
-            )}
-            <div class="teaser-item__text">
-              <p class="teaser-item__period">{e.period}</p>
-              <p class="teaser-item__title">
-                <a href="/timeline/">{e.title}</a>
-              </p>
-              <p class="teaser-item__blurb">{e.blurb}</p>
-            </div>
-          </li>
-        ))}
+        {timeline.teaserEntries.map((e) => {
+          const href = e.projectSlug ? `/projects/${e.projectSlug}/` : '/timeline/';
+          return (
+            <li class={`teaser-item${e.thumb ? '' : ' teaser-item--text'}`}>
+              {e.thumb && (
+                <img
+                  class:list={['teaser-item__thumb', e.thumb.needsMatte && 'teaser-item__thumb--matte']}
+                  src={e.thumb.relUrl}
+                  alt=""
+                  width="72"
+                  height="72"
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+              <div class="teaser-item__text">
+                <p class="teaser-item__period">{e.period}</p>
+                <p class="teaser-item__title">
+                  <a href={href}>{e.title}</a>
+                </p>
+                <p class="teaser-item__blurb">{e.blurb}</p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </section>
   )}

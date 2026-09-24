@@ -13,6 +13,8 @@ export type MediaItem = {
   name: string;
   relUrl: string;
   kind: 'image' | 'video';
+  /** When true, render on a dark matte (light schematics / transparent logos). */
+  needsMatte?: boolean;
 };
 
 export type ProjectContent = {
@@ -47,6 +49,8 @@ export type TimelineEntry = {
   blurb: string;
   folder: string | null;
   thumb: MediaItem | null;
+  /** Linked project deep-dive when the entry maps to a known project. */
+  projectSlug: string | null;
 };
 
 export type TimelineGallery = {
@@ -55,6 +59,9 @@ export type TimelineGallery = {
   lead: MediaItem | null;
   media: MediaItem[];
   matchedEntryTitle: string | null;
+  /** Gallery figures should use a dark matte background. */
+  useMatte: boolean;
+  projectSlug: string | null;
 };
 
 export type TimelineContent = {
@@ -62,7 +69,7 @@ export type TimelineContent = {
   bodyHtml: string | null;
   entries: TimelineEntry[];
   galleries: TimelineGallery[];
-  /** Latest entries for home teaser (newest first). */
+  /** Home teaser: representative span across years (not newest-N). */
   teaserEntries: TimelineEntry[];
 };
 
@@ -255,7 +262,9 @@ function listMediaFiles(
 function pickCover(data: Frontmatter, media: MediaItem[], diagrams: MediaItem[], folderRel: string): MediaItem | null {
   const coverName = fmString(data, 'cover');
   if (coverName) {
-    const found = media.find((m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase());
+    const found =
+      media.find((m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase()) ||
+      diagrams.find((m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase());
     if (found) return found;
     // may be excluded from media if misconfigured — build URL anyway only if file exists
     const folderPath = path.join(CONTENT_ROOT, folderRel);
@@ -269,6 +278,12 @@ function pickCover(data: Frontmatter, media: MediaItem[], diagrams: MediaItem[],
       };
     }
   }
+  // Prefer architecture / datapath diagrams as headline when present (e.g. Comparator).
+  const arch = diagrams.find((d) => {
+    const stem = path.basename(d.name, path.extname(d.name)).toLowerCase();
+    return stem === 'architecture' || stem === 'datapath';
+  });
+  if (arch) return arch;
   const img = media.find((m) => m.kind === 'image');
   if (img) return img;
   return diagrams[0] || null;
@@ -307,7 +322,17 @@ export async function loadProject(def: ProjectDef): Promise<ProjectContent> {
   const { data, body: rawBody } = raw ? parseFrontmatter(raw) : { data: {} as Frontmatter, body: '' };
   const excluded = excludeSet(data);
   const { media, diagrams } = listMediaFiles(folderPath, folder, excluded);
-  const cover = pickCover(data, media, diagrams, folder);
+  let cover = pickCover(data, media, diagrams, folder);
+
+  // Ignite: force capacitive lead as cover when present; matte light/transparent assets.
+  const folderBase = path.basename(folder).toLowerCase();
+  if (folderBase === 'ignite' || folder.includes('timeline/ignite')) {
+    const igniteLead = 'capacitive-cell-charge-discharge.png';
+    const lead = media.find((m) => m.name === igniteLead || m.name.toLowerCase() === igniteLead);
+    if (lead) cover = lead;
+    for (const m of media) m.needsMatte = true;
+    if (cover) cover.needsMatte = true;
+  }
 
   const hook = fmString(data, 'hook') || extractHook(rawBody) || null;
   let body = stripHookLines(stripLeadingH1(rawBody));
@@ -428,27 +453,87 @@ export async function loadAbout(): Promise<AboutContent> {
   };
 }
 
+const IGNITE_LEAD = 'capacitive-cell-charge-discharge.png';
+
+/** Explicit Ignite skips (COVERS.md): blank/white-on-white at thumb size. */
+const IGNITE_SKIP = new Set([
+  'litelock-logo.png',
+  'monostable-capacitor-waveforms.png',
+]);
+
+/** Folders whose gallery images should render on a dark matte by default. */
+const MATTE_FOLDERS = new Set(['ignite']);
+
+/**
+ * Heuristic: skip near-blank / near-white raster images that read as empty boxes.
+ * Keeps SVGs and the designated Ignite lead. Uses raw-byte sampling (no native deps).
+ */
+function imageLooksNearBlank(filePath: string, name: string): boolean {
+  const lower = name.toLowerCase();
+  if (lower === IGNITE_LEAD) return false;
+  const ext = path.extname(lower);
+  if (ext === '.svg') return false;
+  if (!['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext)) return false;
+  let buf: Buffer;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch {
+    return false;
+  }
+  if (buf.length < 64) return true;
+  // Sample evenly across the file (compressed bytes ≈ brightness proxy for flat white PNGs).
+  const samples: number[] = [];
+  const step = Math.max(1, Math.floor(buf.length / 4000));
+  for (let i = 0; i < buf.length; i += step) samples.push(buf[i]);
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  let varSum = 0;
+  for (const s of samples) varSum += (s - mean) * (s - mean);
+  const variance = varSum / samples.length;
+  // Very high mean + very low variance ⇒ nearly solid light / empty.
+  if (mean > 245 && variance < 80) return true;
+  return false;
+}
+
+function pngHasAlpha(filePath: string): boolean {
+  try {
+    const buf = fs.readFileSync(filePath);
+    // PNG IHDR color type at byte 25: 4 or 6 ⇒ alpha
+    if (buf.length > 26 && buf[0] === 0x89 && buf[1] === 0x50) {
+      const colorType = buf[25];
+      return colorType === 4 || colorType === 6;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 function listFolderImages(folderPath: string, folderRel: string, excluded: Set<string> = new Set()): MediaItem[] {
   const out: MediaItem[] = [];
   if (!exists(folderPath)) return out;
+  const folderBase = path.basename(folderPath).toLowerCase();
+  const forceMatte = MATTE_FOLDERS.has(folderBase);
   const parts = folderRel.split('/').map(encodeURIComponent).join('/');
   for (const name of fs.readdirSync(folderPath)) {
     if (excluded.has(name.toLowerCase())) continue;
+    if (IGNITE_SKIP.has(name.toLowerCase())) continue;
     const ext = path.extname(name).toLowerCase();
     if (!IMAGE_EXT.has(ext)) continue;
     const full = path.join(folderPath, name);
     if (!fs.statSync(full).isFile()) continue;
+    if (imageLooksNearBlank(full, name)) continue;
+    const needsMatte = forceMatte || (ext === '.png' && pngHasAlpha(full));
     out.push({
       name,
       relUrl: `/content/${parts}/${encodeURIComponent(name)}`,
       kind: 'image',
+      needsMatte,
     });
   }
-  // Prefer lead-like names first for ignite
+  // Prefer designated Ignite lead, then alpha
   out.sort((a, b) => {
-    const lead = 'capacitive-cell-charge-discharge.png';
-    if (a.name === lead) return -1;
-    if (b.name === lead) return 1;
+    if (a.name === IGNITE_LEAD) return -1;
+    if (b.name === IGNITE_LEAD) return 1;
     return a.name.localeCompare(b.name);
   });
   return out;
@@ -461,9 +546,20 @@ function labelFromFolder(folder: string): string {
     .join(' ');
 }
 
+/** Extract first existing project slug from a timeline blurb (`→ projects/<slug>`). */
+function projectSlugFromBlurb(blurb: string): string | null {
+  const re = /→\s*`projects\/([a-z0-9-]+)`/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(blurb)) !== null) {
+    const slug = m[1].toLowerCase();
+    if (PROJECTS.some((p) => p.slug === slug)) return slug;
+  }
+  return null;
+}
+
 /** Parse timeline.md into entries (document order). */
-function parseTimelineEntries(md: string): Omit<TimelineEntry, 'folder' | 'thumb'>[] {
-  const entries: Omit<TimelineEntry, 'folder' | 'thumb'>[] = [];
+function parseTimelineEntries(md: string): Omit<TimelineEntry, 'folder' | 'thumb' | 'projectSlug'>[] {
+  const entries: Omit<TimelineEntry, 'folder' | 'thumb' | 'projectSlug'>[] = [];
   let period = '';
   for (const line of md.split(/\r?\n/)) {
     const h2 = line.match(/^##\s+(.+)$/);
@@ -485,7 +581,6 @@ function parseTimelineEntries(md: string): Omit<TimelineEntry, 'folder' | 'thumb
 
 function matchFolderToEntry(folder: string, entries: { title: string; blurb: string }[]): string | null {
   const tokens = folder.toLowerCase().split(/[-_]/).filter((t) => t.length > 2);
-  // special aliases
   const aliases: Record<string, string[]> = {
     ignite: ['ignite', 'litelock'],
     'canada-drive': ['canada'],
@@ -496,7 +591,7 @@ function matchFolderToEntry(folder: string, entries: { title: string; blurb: str
     samsung: ['samsung'],
     'rev-silicon': ['rev silicon', 'polite'],
     'narayanan-research': ['narayanan', 'gendiff', 'llmzip'],
-    'imm-winter-sprint': ['winter sprint', 'comparator winter'],
+    'imm-winter-sprint': ['winter sprint', 'comparator', 'imm comparator'],
     'vector-marketing': ['vector marketing'],
     'minecraft-server': ['minecraft'],
   };
@@ -506,6 +601,165 @@ function matchFolderToEntry(folder: string, entries: { title: string; blurb: str
     if (keys.some((k) => hay.includes(k))) return e.title;
   }
   return null;
+}
+
+/** Map a timeline entry to a project slug when discoverable. */
+function matchProjectSlug(title: string, blurb: string, folder: string | null): string | null {
+  const hay = `${title} ${blurb} ${folder || ''}`.toLowerCase();
+  const rules: { slug: string; keys: string[] }[] = [
+    { slug: "ignite", keys: ["ignite", "litelock"] },
+    { slug: "lucidscan", keys: ["lucidscan"] },
+    { slug: "comparator", keys: ["comparator", "super sprint", "imm comparator", "imm tooling"] },
+    { slug: "gendiff-llmzip", keys: ["narayanan", "gendiff", "llmzip"] },
+    { slug: "polite", keys: ["rev silicon", "reveille", "polite"] },
+    { slug: "splendid-hopper", keys: ["splendid hopper", "vulkan"] },
+    { slug: "aggie-scheduler", keys: ["aggie scheduler"] },
+    { slug: "ecen-350-cpu", keys: ["ecen 350", "ecen-350"] },
+    { slug: "study-lens", keys: ["study lens"] },
+    { slug: "class-figures", keys: ["class figures"] },
+  ];
+  for (const r of rules) {
+    if (r.keys.some((k) => hay.includes(k))) {
+      if (PROJECTS.some((p) => p.slug === r.slug)) return r.slug;
+    }
+  }
+  return null;
+}
+
+/**
+ * Optional content/timeline/COVERS.md — maps folder → cover filename.
+ * Accepted lines: `folder: filename.png` or `- folder: filename.png`
+ * Ignored until the file appears; then those covers become timeline headlines.
+ */
+function loadTimelineCovers(): Map<string, string> {
+  const map = new Map<string, string>();
+  const candidates = [
+    path.join(CONTENT_ROOT, 'timeline', 'COVERS.md'),
+    path.join(CONTENT_ROOT, 'timeline', 'covers.md'),
+  ];
+  const remember = (key: string, filePath: string) => {
+    const k = key.trim().toLowerCase();
+    let fp = filePath.trim().replace(/^['"]|['"]$/g, '');
+    if (fp.startsWith('`') && fp.endsWith('`')) fp = fp.slice(1, -1);
+    if (!k || !fp || k.startsWith('#')) return;
+    const base = path.basename(fp);
+    map.set(k, base);
+    const parts = fp.split('/').filter(Boolean);
+    if (parts.length >= 2) map.set(parts[parts.length - 2].toLowerCase(), base);
+  };
+  for (const pth of candidates) {
+    if (!exists(pth)) continue;
+    const raw = readText(pth) || '';
+    for (const line of raw.split(/\r?\n/)) {
+      if (line.includes('|')) {
+        const ticks = [...line.matchAll(/`([^`]+)`/g)].map((x) => x[1]);
+        if (ticks.length >= 2) {
+          const keyCell =
+            ticks.find((x) => /projects\/|timeline\//.test(x) && !/\.(png|jpe?g|svg|webp)$/i.test(x)) ||
+            ticks[0];
+          const coverCell = ticks.find((x) => /\.(png|jpe?g|svg|webp)$/i.test(x));
+          if (keyCell && coverCell) {
+            const slug = keyCell.replace(/^(projects|timeline)\//, '').split('/')[0];
+            remember(slug, coverCell);
+            remember(keyCell.replace(/^(projects|timeline)\//, ''), coverCell);
+          }
+        }
+        continue;
+      }
+      const mm = line.match(/^\s*-?\s*([A-Za-z0-9_\/-]+)\s*:\s*(.+?)\s*$/);
+      if (!mm) continue;
+      remember(mm[1].replace(/^(projects|timeline)\//, ''), mm[2]);
+    }
+    break;
+  }
+  return map;
+}
+
+function resolveEntryThumb(
+  folder: string | null,
+  galleries: TimelineGallery[],
+  covers: Map<string, string>,
+  projectSlug: string | null,
+): MediaItem | null {
+  if (folder) {
+    const coverName = covers.get(folder.toLowerCase());
+    const g = galleries.find((x) => x.folder === folder);
+    if (coverName && g) {
+      const found = g.media.find((m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase());
+      if (found) return found;
+      // Cover named in COVERS.md but maybe filtered — still expose URL if file exists
+      const full = path.join(CONTENT_ROOT, 'timeline', folder, coverName);
+      if (exists(full)) {
+        const parts = `timeline/${folder}`.split('/').map(encodeURIComponent).join('/');
+        return {
+          name: coverName,
+          relUrl: `/content/${parts}/${encodeURIComponent(coverName)}`,
+          kind: 'image',
+          needsMatte: MATTE_FOLDERS.has(folder.toLowerCase()),
+        };
+      }
+    }
+    if (g?.lead) return g.lead;
+  }
+  // Fall back to linked project's cover (e.g. LucidScan with no timeline folder images)
+  if (projectSlug) {
+    const def = PROJECTS.find((p) => p.slug === projectSlug);
+    if (def) {
+      const folderName = resolveProjectFolder(def);
+      if (folderName) {
+        const folderPath = path.join(CONTENT_ROOT, folderName);
+        const readmeCandidates = ['README.md', 'readme.md', 'index.md'];
+        let raw: string | null = null;
+        for (const cand of readmeCandidates) {
+          raw = readText(path.join(folderPath, cand));
+          if (raw) break;
+        }
+        const { data } = raw ? parseFrontmatter(raw) : { data: {} as Frontmatter };
+        const excluded = excludeSet(data);
+        const { media, diagrams } = listMediaFiles(folderPath, folderName, excluded);
+        return pickCover(data, media, diagrams, folderName);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Home teaser: span Summer 2024 → latest, not newest-five.
+ * One representative per major period, capped ~4, chronological.
+ */
+function pickTeaserSpan(entries: TimelineEntry[]): TimelineEntry[] {
+  if (entries.length === 0) return [];
+  const byPeriod = new Map<string, TimelineEntry>();
+  for (const e of entries) {
+    if (!byPeriod.has(e.period)) byPeriod.set(e.period, e);
+  }
+  const periodReps = [...byPeriod.values()];
+  if (periodReps.length <= 4) return periodReps;
+
+  // Prefer entries that link a project or have a cover, still spanning first→last.
+  const scored = periodReps.map((e, i) => ({
+    e,
+    i,
+    score: (e.thumb ? 2 : 0) + (e.projectSlug ? 2 : 0) + (i === 0 || i === periodReps.length - 1 ? 3 : 0),
+  }));
+  // Always keep first and last period
+  const chosenIdx = new Set<number>([0, periodReps.length - 1]);
+  const mid = scored
+    .filter((s) => s.i !== 0 && s.i !== periodReps.length - 1)
+    .sort((a, b) => b.score - a.score || a.i - b.i);
+  for (const s of mid) {
+    if (chosenIdx.size >= 4) break;
+    chosenIdx.add(s.i);
+  }
+  // If still short, fill evenly
+  if (chosenIdx.size < 4) {
+    const step = (periodReps.length - 1) / 3;
+    for (let k = 0; k < 4 && chosenIdx.size < 4; k++) {
+      chosenIdx.add(Math.round(k * step));
+    }
+  }
+  return [...chosenIdx].sort((a, b) => a - b).map((i) => periodReps[i]);
 }
 
 export async function loadTimeline(): Promise<TimelineContent> {
@@ -519,6 +773,7 @@ export async function loadTimeline(): Promise<TimelineContent> {
   }
 
   const parsed = parseTimelineEntries(rawMd);
+  const covers = loadTimelineCovers();
   const galleries: TimelineGallery[] = [];
   const folderByTitle = new Map<string, string>();
 
@@ -526,35 +781,70 @@ export async function loadTimeline(): Promise<TimelineContent> {
     for (const name of fs.readdirSync(timelineDir)) {
       const full = path.join(timelineDir, name);
       if (!fs.statSync(full).isDirectory()) continue;
-      const images = listFolderImages(full, `timeline/${name}`);
+      // Prefer README frontmatter cover inside the folder when present
+      let excluded = new Set<string>();
+      let fmCover: string | null = null;
+      for (const cand of ['README.md', 'readme.md', 'index.md']) {
+        const raw = readText(path.join(full, cand));
+        if (!raw) continue;
+        const { data } = parseFrontmatter(raw);
+        excluded = excludeSet(data);
+        fmCover = fmString(data, 'cover');
+        break;
+      }
+      let images = listFolderImages(full, `timeline/${name}`, excluded);
+      // Apply COVERS.md / frontmatter cover as lead
+      const coverName = covers.get(name.toLowerCase()) || fmCover;
+      if (coverName) {
+        const idx = images.findIndex(
+          (m) => m.name === coverName || m.name.toLowerCase() === coverName.toLowerCase(),
+        );
+        if (idx > 0) {
+          const [c] = images.splice(idx, 1);
+          images = [c, ...images];
+        } else if (idx === -1) {
+          const coverFull = path.join(full, coverName);
+          if (exists(coverFull)) {
+            const parts = `timeline/${name}`.split('/').map(encodeURIComponent).join('/');
+            images = [
+              {
+                name: coverName,
+                relUrl: `/content/${parts}/${encodeURIComponent(coverName)}`,
+                kind: 'image',
+                needsMatte: MATTE_FOLDERS.has(name.toLowerCase()),
+              },
+              ...images,
+            ];
+          }
+        }
+      }
       if (images.length === 0) continue;
       const matched = matchFolderToEntry(name, parsed);
       if (matched) folderByTitle.set(matched, name);
+      const projectSlug = matchProjectSlug(matched || name, '', name);
       galleries.push({
         folder: name,
         label: labelFromFolder(name),
         lead: images[0] || null,
         media: images,
         matchedEntryTitle: matched,
+        useMatte: MATTE_FOLDERS.has(name.toLowerCase()) || images.some((m) => m.needsMatte),
+        projectSlug,
       });
     }
   }
 
   const entries: TimelineEntry[] = parsed.map((e) => {
     const folder = folderByTitle.get(e.title) || null;
-    let thumb: MediaItem | null = null;
-    if (folder) {
-      const g = galleries.find((x) => x.folder === folder);
-      thumb = g?.lead || null;
-    }
-    return { ...e, folder, thumb };
+    const projectSlug = projectSlugFromBlurb(e.blurb) || matchProjectSlug(e.title, e.blurb, folder);
+    const thumb = resolveEntryThumb(folder, galleries, covers, projectSlug);
+    return { ...e, folder, thumb, projectSlug };
   });
 
-  // newest first for teaser (document ends with latest periods)
-  const teaserEntries = [...entries].reverse().slice(0, 5);
+  const teaserEntries = pickTeaserSpan(entries);
 
   return {
-    hasTimeline: Boolean(bodyHtml),
+    hasTimeline: entries.length > 0 || Boolean(bodyHtml),
     bodyHtml,
     entries,
     galleries,

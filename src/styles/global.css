@@ -207,6 +207,7 @@ h2 {
   height: 160px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: top center;
   border: 3px solid var(--border);
   background: var(--bg-elevated);
   box-shadow: var(--shadow);
@@ -569,4 +570,164 @@ a.card:hover {
 
 .teaser-item--text {
   grid-template-columns: 1fr;
+}
+
+
+/* —— v4 structural redesign —— */
+
+.teaser-note {
+  margin: -0.25rem 0 1rem;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.teaser-item__thumb--matte {
+  object-fit: contain;
+  background: #0b0d12;
+}
+
+/* Vertical timeline */
+.vtimeline {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+}
+
+.vtimeline__period {
+  margin: 0 0 2.25rem;
+}
+
+.vtimeline__period-title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 650;
+}
+
+.vtimeline__entries {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  border-left: 2px solid var(--border);
+  display: grid;
+  gap: 1.5rem;
+}
+
+.vtimeline__entry {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.vtimeline__marker {
+  position: absolute;
+  left: -0.45rem;
+  top: 0.45rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--border);
+}
+
+.vtimeline__card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem 1.15rem;
+  box-shadow: var(--shadow);
+}
+
+.vtimeline__title {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.vtimeline__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.vtimeline__title a:hover {
+  color: var(--accent);
+}
+
+.vtimeline__blurb {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.vtimeline__cover {
+  display: block;
+  margin-top: 0.9rem;
+  border-radius: calc(var(--radius) - 4px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+.vtimeline__cover img {
+  width: 100%;
+  height: auto;
+  max-height: 22rem;
+  object-fit: contain;
+  background: var(--bg);
+}
+
+.vtimeline__cover--matte,
+.vtimeline__cover--matte img {
+  background: #0b0d12;
+}
+
+.vtimeline__link {
+  margin: 0.75rem 0 0;
+  font-size: 0.92rem;
+}
+
+.gallery--compact {
+  margin-top: 1rem;
+}
+
+.gallery--matte figure,
+.gallery__matte {
+  background: #0b0d12;
+}
+
+.gallery--matte img,
+.gallery__matte img {
+  object-fit: contain;
+  max-height: 28rem;
+  margin-inline: auto;
+  background: #0b0d12;
+}
+
+.project-cover {
+  margin: 1.25rem 0 1.5rem;
+  padding: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.project-cover img {
+  width: 100%;
+  height: auto;
+  max-height: 32rem;
+  object-fit: contain;
+  background: var(--bg);
+}
+
+.project-cover--matte,
+.project-cover--matte img {
+  background: #0b0d12;
+}
+
+.project-cover figcaption {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }

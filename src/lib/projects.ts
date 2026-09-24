@@ -2,6 +2,7 @@
  * Canonical project list for the site.
  * Progenitor content lives under content/projects/<slug>/ (preferred).
  * Legacy flat content/<folder>/ names remain as fallbacks.
+ * Timeline-only asset folders (e.g. timeline/ignite) are valid folder candidates.
  */
 export type ProjectDef = {
   slug: string;
@@ -53,6 +54,11 @@ export const PROJECTS: ProjectDef[] = [
     slug: 'lucidscan',
     title: 'LucidScan',
     folders: ['projects/lucidscan', 'lucidscan', 'LucidScan'],
+  },
+  {
+    slug: 'ignite',
+    title: 'SEC Ignite — LiteLock',
+    folders: ['projects/ignite', 'timeline/ignite', 'ignite'],
   },
   {
     slug: 'ecen-350-cpu',

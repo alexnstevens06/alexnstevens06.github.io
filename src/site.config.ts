@@ -13,4 +13,14 @@ export const siteConfig = {
 };
 
 /** Build-time default excludes until Progenitor removes these files. */
-export const DEFAULT_MEDIA_EXCLUDE = ['home.jpg', 'browser.jpg', 'home.jpeg', 'browser.jpeg', 'home.png', 'browser.png'];
+export const DEFAULT_MEDIA_EXCLUDE = [
+  'home.jpg',
+  'browser.jpg',
+  'home.jpeg',
+  'browser.jpeg',
+  'home.png',
+  'browser.png',
+  // Ignite: white-on-white / blank-box risk (COVERS.md)
+  'litelock-logo.png',
+  'monostable-capacitor-waveforms.png',
+];

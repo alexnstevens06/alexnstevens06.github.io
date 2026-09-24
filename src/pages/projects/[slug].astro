@@ -16,6 +16,9 @@ if (!def) {
 }
 const project = await loadProject(def);
 const description = project.hook || project.summary || `${project.title} — project page.`;
+const coverName = project.cover?.name || null;
+const galleryMedia = project.media.filter((m) => m.name !== coverName);
+const useMatte = slug === 'ignite' || galleryMedia.some((m) => m.needsMatte) || project.cover?.needsMatte;
 ---
 <BaseLayout title={project.title} description={description}>
   <p class="crumb"><a href="/projects/">Projects</a> / {project.title}</p>
@@ -29,28 +32,43 @@ const description = project.hook || project.summary || `${project.title} — pro
     />
   )}
 
+  {project.cover && (
+    <figure class:list={['project-cover', (project.cover.needsMatte || slug === 'ignite') && 'project-cover--matte']}>
+      <img
+        src={project.cover.relUrl}
+        alt=""
+        width="1200"
+        loading="eager"
+        decoding="async"
+      />
+      <figcaption>{project.cover.name}</figcaption>
+    </figure>
+  )}
+
   {project.bodyHtml && <article class="prose" set:html={project.bodyHtml} />}
 
   {project.diagrams.length > 0 && (
     <section aria-labelledby="diagrams-heading" style="margin-top: 2rem;">
       <h2 id="diagrams-heading">Diagrams</h2>
       <div class="gallery" role="list">
-        {project.diagrams.map((d) => (
-          <figure role="listitem" class="gallery__lead">
-            <img src={d.relUrl} alt={`${project.title} — ${d.name}`} loading="lazy" decoding="async" />
-            <figcaption>{d.name}</figcaption>
-          </figure>
-        ))}
+        {project.diagrams
+          .filter((d) => d.name !== coverName)
+          .map((d) => (
+            <figure role="listitem" class="gallery__lead">
+              <img src={d.relUrl} alt={`${project.title} — ${d.name}`} loading="lazy" decoding="async" />
+              <figcaption>{d.name}</figcaption>
+            </figure>
+          ))}
       </div>
     </section>
   )}
 
-  {project.media.length > 0 && (
+  {galleryMedia.length > 0 && (
     <section aria-labelledby="media-heading" style="margin-top: 2rem;">
       <h2 id="media-heading">Media</h2>
-      <div class="gallery" role="list">
-        {project.media.map((item) => (
-          <figure role="listitem">
+      <div class:list={['gallery', useMatte && 'gallery--matte']} role="list">
+        {galleryMedia.map((item) => (
+          <figure role="listitem" class:list={[item.needsMatte && 'gallery__matte']}>
             {item.kind === 'image' ? (
               <img src={item.relUrl} alt="" width="960" loading="lazy" decoding="async" />
             ) : (
