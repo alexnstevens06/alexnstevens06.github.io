@@ -1,0 +1,26 @@
+{
+  "name": "alexnstevens06.github.io",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "prebuild": "node scripts/sync-content.mjs",
+    "predev": "node scripts/sync-content.mjs",
+    "prepreview": "node scripts/sync-content.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.3.5",
+    "marked": "^16.3.0",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
