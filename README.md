@@ -136,14 +136,7 @@ Folder → slug mapping lives in `src/lib/projects.ts`. Update that file if Prog
 
 ## Git / deploy notes
 
-- Feature work happens on `site-v1` (or other branches); merge to `main` to deploy.
-- Do not enable GitHub Pages until ready; the workflow file is already present.
-- Never commit `node_modules/`, `dist/`, `.home/`, or secrets.
+- Feature work on `site-v1`; merge to `main` to trigger `.github/workflows/deploy.yml` (withastro/action@v6 + deploy-pages).
+- Enable GitHub Pages (source: **GitHub Actions**) only after review — this branch does not enable it.
+- Never commit secrets; `content/` is gitignored until Castellan stages it.
 
-## Publishing
-
-Publish to GitHub Pages (orphan `gh-pages` branch): `./scripts/publish-gh-pages.sh` (do not commit `.github/workflows/deploy.yml`; Pages is enabled from the `gh-pages` branch).
-
-## Deploy workflow note
-
-Deployment uses the orphan `gh-pages` branch via `scripts/publish-gh-pages.sh` rather than Actions. Do not add `.github/workflows/deploy.yml` to this PR.
