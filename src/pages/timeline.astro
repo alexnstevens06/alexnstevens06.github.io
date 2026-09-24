@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TodoBox from '../components/TodoBox.astro';
+import { loadTimeline, syncContentToPublic } from '../lib/content';
+
+syncContentToPublic();
+const timeline = await loadTimeline();
+const gallery = [
+  ...(timeline.igniteLead ? [timeline.igniteLead] : []),
+  ...timeline.igniteMedia,
+];
+---
+<BaseLayout title="Timeline" description="Semester-by-semester path.">
+  {!timeline.hasTimeline ? (
+    <TodoBox message="content pending — add content/timeline.md." />
+  ) : (
+    <article class="prose timeline-prose" set:html={timeline.bodyHtml} />
+  )}
+
+  {gallery.length > 0 && (
+    <section aria-labelledby="ignite-heading" style="margin-top: 2.5rem;">
+      <h2 id="ignite-heading">SEC Ignite — LiteLock visuals</h2>
+      <div class="gallery" role="list">
+        {gallery.map((item, i) => (
+          <figure role="listitem" class={i === 0 && timeline.igniteLead ? 'gallery__lead' : undefined}>
+            <img
+              src={item.relUrl}
+              alt={`Ignite / LiteLock — ${item.name}`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+            <figcaption>{item.name}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )}
+</BaseLayout>

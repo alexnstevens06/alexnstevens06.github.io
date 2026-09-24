@@ -1,0 +1,82 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TodoBox from '../components/TodoBox.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { loadAbout, loadAllProjects, loadTimeline, syncContentToPublic } from '../lib/content';
+
+syncContentToPublic();
+const about = await loadAbout();
+const projects = await loadAllProjects();
+const timeline = await loadTimeline();
+---
+<BaseLayout title="Alex Stevens" description="About Alex Stevens and selected projects.">
+  <section class="hero" aria-labelledby="about-heading">
+    {about.headshotRelUrl ? (
+      <img
+        class="avatar"
+        src={about.headshotRelUrl}
+        alt="Headshot of Alex Stevens"
+        width="160"
+        height="160"
+      />
+    ) : (
+      <div class="avatar avatar--placeholder" role="img" aria-label="TODO: headshot pending">
+        TODO: headshot
+      </div>
+    )}
+    <div>
+      <h1 id="about-heading">Alex Stevens</h1>
+      {about.hasBio && about.bioHtml ? (
+        <div class="prose" set:html={about.bioHtml} />
+      ) : (
+        <TodoBox message="content pending — add content/about/bio.md (or README.md) with a short bio." />
+      )}
+      <div class="btn-row">
+        {about.resumeHref ? (
+          <a class="btn btn--primary" href={about.resumeHref}>Resume</a>
+        ) : (
+          <span class="btn btn--disabled" aria-disabled="true">Resume (TODO)</span>
+        )}
+        <a class="btn" href="/projects/">Projects</a>
+        <a class="btn" href="/contact/">Contact</a>
+      </div>
+      {!about.resumeHref && (
+        <TodoBox message="content pending — resume link. Add resume: URL to about frontmatter." />
+      )}
+    </div>
+  </section>
+
+  <section aria-labelledby="timeline-heading" style="margin-bottom: 2.5rem;">
+    <div class="section-head">
+      <h2 id="timeline-heading">Timeline</h2>
+      <a href="/timeline/">Full timeline</a>
+    </div>
+    {timeline.hasTimeline ? (
+      <p class="lede">Semester-by-semester path. Project deep-dives live under Projects.</p>
+    ) : (
+      <TodoBox message="content pending — add content/timeline.md." />
+    )}
+    {timeline.igniteLead && (
+      <figure class="timeline-teaser">
+        <img
+          src={timeline.igniteLead.relUrl}
+          alt="SEC Ignite LiteLock — capacitive cell charge/discharge"
+          loading="lazy"
+        />
+        <figcaption>
+          Lead visual from SEC Ignite (LiteLock). <a href="/timeline/">See the full timeline</a>.
+        </figcaption>
+      </figure>
+    )}
+  </section>
+
+  <section aria-labelledby="featured-heading">
+    <div class="section-head">
+      <h2 id="featured-heading">Projects</h2>
+      <a href="/projects/">View all</a>
+    </div>
+    <div class="project-grid">
+      {projects.slice(0, 6).map((p) => <ProjectCard project={p} />)}
+    </div>
+  </section>
+</BaseLayout>

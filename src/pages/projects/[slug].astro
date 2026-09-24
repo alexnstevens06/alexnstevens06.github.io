@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TodoBox from '../../components/TodoBox.astro';
+import { PROJECTS, getProjectBySlug } from '../../lib/projects';
+import { loadProject, syncContentToPublic } from '../../lib/content';
+
+export function getStaticPaths() {
+  return PROJECTS.map((p) => ({ params: { slug: p.slug } }));
+}
+
+syncContentToPublic();
+const { slug } = Astro.params;
+const def = getProjectBySlug(slug!);
+if (!def) {
+  return Astro.redirect('/projects/');
+}
+const project = await loadProject(def);
+const description = project.summary || `${project.title} — project page.`;
+---
+<BaseLayout title={project.title} description={description}>
+  <p class="crumb"><a href="/projects/">Projects</a> / {project.title}</p>
+  <h1>{project.title}</h1>
+  {project.statusLabel && <p><span class="badge">{project.statusLabel}</span></p>}
+
+  {project.summary && <p class="lede">{project.summary}</p>}
+
+  {!project.hasContent && (
+    <TodoBox
+      message={`content pending — add content/projects/${def.slug}/README.md (and optional images). Also accepts: ${def.folders.join(', ')}.`}
+    />
+  )}
+
+  {project.bodyHtml && <article class="prose" set:html={project.bodyHtml} />}
+
+  {project.architectureSvgRelUrl && (
+    <section aria-labelledby="arch-heading" style="margin-top: 2rem;">
+      <h2 id="arch-heading">Architecture</h2>
+      <figure class="arch-figure">
+        <img
+          src={project.architectureSvgRelUrl}
+          alt={`${project.title} architecture diagram`}
+          loading="lazy"
+        />
+        <figcaption>Architecture (ports omitted).</figcaption>
+      </figure>
+    </section>
+  )}
+
+  {project.media.length > 0 && (
+    <section aria-labelledby="media-heading" style="margin-top: 2rem;">
+      <h2 id="media-heading">Media</h2>
+      <div class="gallery" role="list">
+        {project.media.map((item) => (
+          <figure role="listitem">
+            {item.kind === 'image' ? (
+              <img src={item.relUrl} alt={`${project.title} — ${item.name}`} loading="lazy" />
+            ) : (
+              <video controls preload="metadata" playsinline>
+                <source src={item.relUrl} />
+                <a href={item.relUrl}>Download {item.name}</a>
+              </video>
+            )}
+            <figcaption>{item.name}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {project.folder && !project.bodyHtml && project.media.length > 0 && (
+    <TodoBox message={`content pending — README.md missing in content/${project.folder}/ (media found).`} />
+  )}
+</BaseLayout>

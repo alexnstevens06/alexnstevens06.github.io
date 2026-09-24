@@ -1,0 +1,22 @@
+---
+import type { ProjectContent } from '../lib/content';
+
+interface Props {
+  project: ProjectContent;
+}
+const { project } = Astro.props;
+---
+<a class="card" href={`/projects/${project.def.slug}/`}>
+  <h3 class="card__title">{project.title}</h3>
+  {project.statusLabel && <span class="badge">{project.statusLabel}</span>}
+  {project.summary ? (
+    <p class="card__summary">{project.summary}</p>
+  ) : (
+    <p class="card__summary">Write-up pending.</p>
+  )}
+  {project.hasContent ? (
+    <span class="badge">View project</span>
+  ) : (
+    <span class="badge badge--todo">TODO: content pending</span>
+  )}
+</a>

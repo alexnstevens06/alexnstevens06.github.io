@@ -1,0 +1,19 @@
+---
+const pathname = Astro.url.pathname;
+function current(href: string) {
+  if (href === '/') return pathname === '/' || pathname === '';
+  return pathname === href || pathname.startsWith(href);
+}
+---
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="/">Alex Stevens</a>
+    <nav class="nav" aria-label="Primary">
+      <a href="/" aria-current={current('/') ? 'page' : undefined}>About</a>
+      <a href="/timeline/" aria-current={current('/timeline/') ? 'page' : undefined}>Timeline</a>
+      <a href="/projects/" aria-current={current('/projects/') ? 'page' : undefined}>Projects</a>
+      <a href="/contact/" aria-current={current('/contact/') ? 'page' : undefined}>Contact</a>
+    </nav>
+  </div>
+</header>
