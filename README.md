@@ -140,6 +140,10 @@ Folder → slug mapping lives in `src/lib/projects.ts`. Update that file if Prog
 - Do not enable GitHub Pages until ready; the workflow file is already present.
 - Never commit `node_modules/`, `dist/`, `.home/`, or secrets.
 
+## Publishing
+
+Publish to GitHub Pages (orphan `gh-pages` branch): `./scripts/publish-gh-pages.sh` (do not commit `.github/workflows/deploy.yml`; Pages is enabled from the `gh-pages` branch).
+
 ## Deploy workflow note
 
-The Astro Pages workflow file lives on disk at `.github/workflows/deploy.yml` (withastro/action@v6 + deploy-pages, `push` to `main` + `workflow_dispatch`). Pushing it requires a GitHub token with the `workflow` scope; the bot OAuth token on tower does not have that scope, so the file is intentionally **not** in this branch yet. A human (or a token with `workflow`) should add/commit it before enabling Pages.
+Deployment uses the orphan `gh-pages` branch via `scripts/publish-gh-pages.sh` rather than Actions. Do not add `.github/workflows/deploy.yml` to this PR.
