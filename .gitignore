@@ -31,3 +31,6 @@ content/
 
 # Build-time copy of content into public
 public/content/
+
+# publish-gh-pages.sh worktree scratch
+.home/
