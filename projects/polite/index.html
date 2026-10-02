@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="A pad-fed 4×4 int8 matrix tile for Tiny Tapeout, with a cycle-accurate C golden model and matching SystemVerilog RTL. The pad-clock target is 66 MHz (15.15 ns) for STA and the pin budget, not a measured clock. At that target the inbound pin rate is 132000000 bytes/s (2 bytes per beat)."><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>POLITE · Alex Stevens</title><link rel="stylesheet" href="/_astro/content.DvbvUXcy.css"></head><body><header class="site-header"><div class="site-header__inner"><a class="brand" href="/">Alex Stevens</a><a class="back" href="/">← Timeline</a></div></header><main id="main" class="page"><p class="crumb"><a href="/">Timeline</a> / POLITE</p><h1>POLITE</h1><p class="lede">A pad-fed 4×4 int8 matrix tile for Tiny Tapeout, with a cycle-accurate C golden model and matching SystemVerilog RTL. The pad-clock target is 66 MHz (15.15 ns) for STA and the pin budget, not a measured clock. At that target the inbound pin rate is 132000000 bytes/s (2 bytes per beat).</p><figure class="project-cover"><picture><source type="image/avif" srcset="/_astro/chip.CT9Mqnhr_Z2ezdaq.avif"><img src="/_astro/chip.CT9Mqnhr_lN3Gl.webp" alt width="800" height="680" loading="eager" decoding="async" fetchpriority="high"></picture></figure><article class="prose"><h2>What it is</h2>
+<p>POLITE is a 4×4 int8 matrix unit designed for Tiny Tapeout. One operand panel stays on chip; the other streams through the pad bus one beat at a time. Each PE keeps a 24-bit partial sum. A finished tile leaves as sixteen 32-bit words, one result byte per beat on <code>uo_out</code>.</p>
+<p>I wrote this for Rev Silicon’s first-chip effort. The architecture (widths, resident panels, dual-edge pad protocol) is intended to be open. Full RTL is not mirrored on this site.</p>
+<h2>My role</h2>
+<p>Sole designer of the POLITE core: golden model in C (<code>polite/src/chip.c</code>), SystemVerilog RTL under <code>rtl/</code>, cosimulation testbench, and architecture docs/diagrams.</p>
+<h2>Tech</h2>
+<ul>
+<li>SystemVerilog (Tiny Tapeout top <code>tt_um_polite.v</code>)</li>
+<li>C11 golden model + Makefile cosim (iverilog / vvp)</li>
+<li>Behavioral stand-in for sky130 2 kB SRAM macros</li>
+</ul>
+<h2>Key points</h2>
+<ul>
+<li>Pad beat = one <code>clk</code> period; rising edge samples the bus and starts compute, falling edge continues.</li>
+<li>Three <code>sky130_sram_2kbyte_1rw1r_32x512_8</code> macros for the operand store (behavioral model in <code>rtl/polite_mem.v</code>).</li>
+<li>Docs walk the block diagram, command encoding, and where RTL differs from the earlier sketch.</li>
+</ul>
+<h2>Dates</h2>
+<p>September 2026 (active). Git history on the org remote starts 2026-09-21.</p>
+<h2>Links</h2>
+<p>Architecture will be public with the Tiny Tapeout / Rev Silicon release. The org repo is currently private — no public GitHub link here yet.</p>
+<h2>Figures</h2>
+<ul>
+<li><code>chip.png</code></li>
+<li><code>polite-array-flow.png</code></li>
+<li><code>polite-both-edges.png</code></li>
+<li><code>polite-commands.png</code></li>
+<li><code>polite-input-buffering.png</code></li>
+<li><code>polite-old-block-diagram.png</code> — earlier sketch, not the current RTL</li>
+<li><code>polite-rp2350-tiling.png</code></li>
+<li><code>polite-sram-capture.png</code></li>
+<li><code>polite-usb-speeds.png</code></li>
+</ul>
+</article><section aria-labelledby="media-heading"><h2 id="media-heading">Media</h2><ul class="gallery"><li><a href="/_astro/polite-array-flow.B-x3pT0l_Z1rlArj.webp"><picture><source type="image/avif" srcset="/_astro/polite-array-flow.B-x3pT0l_Z2qmXBA.avif"><img src="/_astro/polite-array-flow.B-x3pT0l_Z22Ulzm.webp" alt="polite-array-flow.png" width="400" height="269" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-array-flow.png</span></li><li><a href="/_astro/polite-both-edges.ChFIThsv_2jPR2i.webp"><picture><source type="image/avif" srcset="/_astro/polite-both-edges.ChFIThsv_Z2sE41q.avif"><img src="/_astro/polite-both-edges.ChFIThsv_Z25cqYc.webp" alt="polite-both-edges.png" width="400" height="248" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-both-edges.png</span></li><li><a href="/_astro/polite-commands.l9XrsL6o_Z13Gxvu.webp"><picture><source type="image/avif" srcset="/_astro/polite-commands.l9XrsL6o_1Il8dB.avif"><img src="/_astro/polite-commands.l9XrsL6o_ZnpHfO.webp" alt="polite-commands.png" width="400" height="278" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-commands.png</span></li><li><a href="/_astro/polite-input-buffering.uo9DEoeQ_x5JiN.webp"><picture><source type="image/avif" srcset="/_astro/polite-input-buffering.uo9DEoeQ_Z1QO2UO.avif"><img src="/_astro/polite-input-buffering.uo9DEoeQ_zTDk.webp" alt="polite-input-buffering.png" width="400" height="253" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-input-buffering.png</span></li><li><a href="/_astro/polite-old-block-diagram.3GbV1akc_Z1FpF9h.webp"><picture><source type="image/avif" srcset="/_astro/polite-old-block-diagram.3GbV1akc_HhDBF.avif"><img src="/_astro/polite-old-block-diagram.3GbV1akc_Z289Qgg.webp" alt="polite-old-block-diagram.png" width="400" height="259" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-old-block-diagram.png</span></li><li><a href="/_astro/polite-rp2350-tiling.-JzfIf3i_2pY57J.webp"><picture><source type="image/avif" srcset="/_astro/polite-rp2350-tiling.-JzfIf3i_1tOQbH.avif"><img src="/_astro/polite-rp2350-tiling.-JzfIf3i_Z1H0Fgh.webp" alt="polite-rp2350-tiling.png" width="400" height="261" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-rp2350-tiling.png</span></li><li><a href="/_astro/polite-sram-capture.STbALTMD_Z1dggss.webp"><picture><source type="image/avif" srcset="/_astro/polite-sram-capture.STbALTMD_u5EmP.avif"><img src="/_astro/polite-sram-capture.STbALTMD_Z1ffEfO.webp" alt="polite-sram-capture.png" width="400" height="232" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-sram-capture.png</span></li><li><a href="/_astro/polite-usb-speeds.DwwEfhA__Z1nkP5L.webp"><picture><source type="image/avif" srcset="/_astro/polite-usb-speeds.DwwEfhA__CCpQU.avif"><img src="/_astro/polite-usb-speeds.DwwEfhA__1152T9.webp" alt="polite-usb-speeds.png" width="400" height="232" loading="lazy" decoding="async"></picture></a><span class="gallery__cap" aria-hidden="true">polite-usb-speeds.png</span></li></ul></section></main><footer class="site-footer"><div class="site-footer__inner"><p>© 2026 Alex Stevens. Built with Astro.</p></div></footer></body></html>
