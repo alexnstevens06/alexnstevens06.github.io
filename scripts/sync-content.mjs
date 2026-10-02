@@ -25,7 +25,7 @@ const DEFAULT_EXCLUDE = new Set([
 
 /** Only these content folders may ship raw video. */
 const VIDEO_FOLDERS = new Set(['projects/splendid-hopper']);
-const VIDEO_EXT = new Set(['.mp4', '.webm']);
+const VIDEO_EXT = new Set(['.mp4', '.webm', '.gif']);
 
 function stripPortsInText(text) {
   return text.replace(/:61926/g, '').replace(/:3000/g, '');

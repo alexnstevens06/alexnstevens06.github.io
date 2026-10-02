@@ -71,16 +71,7 @@ export const PROJECTS: ProjectDef[] = [
       'ecen350',
     ],
   },
-  {
-    slug: 'class-figures',
-    title: 'class figures',
-    folders: [
-      'projects/class-figures',
-      'class-figures',
-      'class_figures',
-      'classfigures',
-    ],
-  },
+
   {
     slug: 'jbl-ble',
     title: 'JBL BLE',
