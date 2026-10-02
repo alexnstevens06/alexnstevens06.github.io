@@ -1,0 +1,355 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TodoBox from '../components/TodoBox.astro';
+import Img from '../components/Img.astro';
+import { loadAbout, loadBioLine, loadHomeTimeline, type HomeEntry } from '../lib/content';
+
+const about = await loadAbout();
+const bioLine = loadBioLine();
+const entries = await loadHomeTimeline();
+const links = [
+  ...(about.email ? [{ label: 'Email', href: `mailto:${about.email}` }] : []),
+  ...about.links,
+  ...(about.resumeHref ? [{ label: 'Resume', href: about.resumeHref }] : []),
+];
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Fragment id for a timeline card. Uses the project path when there is one. */
+function entryAnchor(e: HomeEntry): string {
+  const raw = (e.href || e.title).toLowerCase();
+  const slug = raw.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `entry-${slug}`;
+}
+
+function monthIndex(iso: string): number {
+  const m = /^(\d{4})-(\d{2})/.exec(iso);
+  if (!m) return 0;
+  return Number(m[1]) * 12 + Number(m[2]) - 1;
+}
+
+
+function spineLabel(title: string): string {
+  const t = title.toLowerCase();
+  if (t.startsWith("polite")) return "POLITE";
+  if (t.startsWith("jbl")) return "JBL";
+  if (t.includes("hopper")) return "Splendid Hopper";
+  if (t.includes("samsung")) return "Samsung";
+  if (t.includes("ecen 350")) return "ECEN 350";
+  if (t.startsWith("comparator")) return "Comparator";
+  if (t.startsWith("gendiff")) return "GenDiff";
+  if (t.startsWith("study lens")) return "Study Lens";
+  if (t.startsWith("lucidscan")) return "LucidScan";
+  if (t.startsWith("aggie")) return "Aggie Scheduler";
+  if (t.includes("lunabotics")) return "Lunabotics";
+  if (t.startsWith("imm ")) return "IMM tooling";
+  if (t.includes("build4good") || t.includes("pokerbot")) return "Build4Good";
+  if (t.includes("mittic")) return "MITTIC";
+  if (t.includes("ignite")) return "Ignite";
+  if (t.startsWith("vector")) return "Vector Marketing";
+  return title;
+}
+
+function shortWhen(iso: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(iso);
+  if (!m) return '';
+  return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+}
+
+// Oldest at the left. Equal dates keep timeline.md order.
+// gap is whole months since the previous entry (0 = same month).
+const spine = entries
+  .map((e, i) => ({ e, i, id: entryAnchor(e) }))
+  .sort((a, b) => (a.e.date < b.e.date ? -1 : a.e.date > b.e.date ? 1 : a.i - b.i))
+  .map((item, i, arr) => {
+    const gap = i === 0 ? 0 : Math.max(0, monthIndex(item.e.date) - monthIndex(arr[i - 1].e.date));
+    return { ...item, gap, when: shortWhen(item.e.date) };
+  });
+
+const startM = spine.length ? monthIndex(spine[0].e.date) : 0;
+const endM = spine.length ? monthIndex(spine[spine.length - 1].e.date) : 0;
+const byMonth = new Map<number, typeof spine>();
+for (const item of spine) {
+  const mi = monthIndex(item.e.date);
+  const list = byMonth.get(mi) ?? [];
+  list.push(item);
+  byMonth.set(mi, list);
+}
+
+/** One column per calendar month. Ticks mark the scale, not each entry. */
+const scale = [];
+for (let m = startM; m <= endM; m++) {
+  const year = Math.floor(m / 12);
+  const month = (m % 12) + 1;
+  const quarter = month === 1 || month === 4 || month === 7 || month === 10;
+  const axisLabel = quarter ? `${MONTHS[month - 1]} ${year}` : '';
+  scale.push({ key: `${year}-${String(month).padStart(2, '0')}`, axisLabel, entries: byMonth.get(m) ?? [] });
+}
+---
+<BaseLayout title="Alex Stevens" description={bioLine || 'Alex Stevens — timeline of work and projects.'} bare>
+  <header class="intro">
+    {about.headshotRelUrl && (
+      <Img class="intro__photo" src={about.headshotRelUrl} width={144} alt="Headshot of Alex Stevens" eager />
+    )}
+    <div>
+      <h1 class="intro__name">Alex Stevens</h1>
+      {bioLine && <p class="intro__bio">{bioLine}</p>}
+      {links.length > 0 && (
+        <p class="intro__links">
+          {links.map((l) => (
+            <a href={l.href} rel={l.href.startsWith('http') ? 'noopener noreferrer' : undefined}>{l.label}</a>
+          ))}
+        </p>
+      )}
+    </div>
+  </header>
+
+  {entries.length === 0 ? (
+    <TodoBox message="content pending — add content/timeline.md." />
+  ) : (
+    <>
+      <nav class="spine" aria-label="Timeline">
+        <ol>
+          {scale.map((month) => (
+            <li class="spine__month" data-month={month.key}>
+              {month.entries.length > 0 && (
+                <div class="spine__entries">
+                  {month.entries.map(({ e, id, gap, when }) => (
+                    <div class="spine__hit">
+                      <div class="spine__sq" data-gap={gap}>
+                        <div class="spine__spin">
+                          <span class="spine__label">
+                            <span class="spine__name">{spineLabel(e.title)}</span>
+                          </span>
+                          <button type="button" class="spine__jump" data-spine-target={id} aria-label={`Jump to ${e.title}`}>
+                            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+                              <path d="M8 2.2v9.2M3.4 7.6 8 12.4l4.6-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {month.axisLabel && <span class="spine__axis-tick" aria-hidden="true"></span>}
+              {month.axisLabel && <span class="spine__axis-label">{month.axisLabel}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <script is:inline>
+        (function () {
+          var TILT = -75;
+          function naturalSize(sq) {
+            var prev = sq.style.transform;
+            sq.style.transition = 'none';
+            sq.style.transform = 'none';
+            var box = sq.getBoundingClientRect();
+            var w = box.width;
+            var h = box.height;
+            sq.style.transform = prev;
+            sq.style.transition = '';
+            return { w: w, h: h };
+          }
+          function rotatedWidth(w, h, deg) {
+            var r = Math.abs(deg) * Math.PI / 180;
+            return w * Math.abs(Math.cos(r)) + h * Math.abs(Math.sin(r));
+          }
+          function rotatedHeight(w, h, deg) {
+            var r = Math.abs(deg) * Math.PI / 180;
+            return w * Math.abs(Math.sin(r)) + h * Math.abs(Math.cos(r));
+          }
+          function openBox(sq) {
+            var jump = sq.querySelector('.spine__jump');
+            var prev = sq.style.transform;
+            var saved = jump ? jump.getAttribute('style') : null;
+            sq.style.transition = 'none';
+            sq.style.transform = 'none';
+            if (jump) {
+              jump.style.position = 'static';
+              jump.style.width = '1.15rem';
+              jump.style.height = '1.15rem';
+              jump.style.margin = '0';
+              jump.style.clip = 'auto';
+              jump.style.overflow = 'visible';
+            }
+            var w = sq.offsetWidth;
+            var h = sq.offsetHeight;
+            sq.style.transform = prev;
+            sq.style.transition = '';
+            if (jump) {
+              if (saved === null) jump.removeAttribute('style');
+              else jump.setAttribute('style', saved);
+            }
+            return { w: w, h: h };
+          }
+          function openHeight(sq) {
+            return openBox(sq).h;
+          }
+          function restingMetrics(w, h) {
+            var ang = TILT * Math.PI / 180;
+            var cs = Math.cos(ang);
+            var sn = Math.sin(ang);
+            var corners = [[-w / 2, 0], [w / 2, 0], [-w / 2, -h], [w / 2, -h]];
+            var minX = 0, maxX = 0, minY = 0, maxY = 0;
+            for (var c = 0; c < corners.length; c++) {
+              var x2 = corners[c][0] * cs - corners[c][1] * sn;
+              var y2 = corners[c][0] * sn + corners[c][1] * cs;
+              if (c === 0 || x2 < minX) minX = x2;
+              if (c === 0 || x2 > maxX) maxX = x2;
+              if (c === 0 || y2 < minY) minY = y2;
+              if (c === 0 || y2 > maxY) maxY = y2;
+            }
+            return { left: -minX, right: Math.max(0, maxX), dip: Math.max(0, maxY), above: maxY - minY };
+          }
+          function pinSpine() {
+            var nav = document.querySelector('.spine');
+            var maxH = 0;
+            document.querySelectorAll('.spine__spin').forEach(function (sq) {
+              maxH = Math.max(maxH, openHeight(sq));
+            });
+            if (maxH > 0) nav.style.setProperty('--spine-open', Math.ceil(maxH) + 'px');
+          }
+          function layout() {
+            var nav = document.querySelector('.spine');
+            var maxAbove = 0;
+            document.querySelectorAll('.spine__spin').forEach(function (sq) {
+              var hit = sq.closest('.spine__hit');
+              var month = sq.closest('.spine__month');
+              var size = naturalSize(sq);
+              hit.style.height = '';
+              month.style.flexGrow = '';
+              month.style.minWidth = '';
+              sq.style.transform = '';
+              var m = restingMetrics(size.w, size.h);
+              var dip = Math.ceil(m.dip + 1);
+              sq.style.setProperty('--dip', dip + 'px');
+              hit.style.setProperty('--slot', (m.left + m.right) + 'px');
+              hit.style.setProperty('--anchor', m.left + 'px');
+              var opened = openBox(sq);
+              hit.style.setProperty('--open-w', opened.w + 'px');
+              hit.style.setProperty('--open-h', opened.h + 'px');
+              var above = dip - (m.dip - m.above);
+              if (above > maxAbove) maxAbove = above;
+            });
+            if (maxAbove > 0) nav.style.setProperty('--spine-rest', Math.ceil(maxAbove) + 'px');
+            var ol = nav.querySelector('ol');
+            var top = ol.getBoundingClientRect().top;
+            var need = 0;
+            document.querySelectorAll('.spine__spin').forEach(function (sq) {
+              var overflow = top - sq.getBoundingClientRect().top;
+              if (overflow > need) need = overflow;
+            });
+            if (need > 0.5) {
+              nav.style.setProperty('--spine-rest', Math.ceil(maxAbove + need + 1) + 'px');
+            }
+            nav.querySelectorAll('.spine__month').forEach(function (month) {
+              var rest = 0;
+              var openW = 0;
+              month.querySelectorAll('.spine__hit').forEach(function (hit) {
+                rest += parseFloat(hit.style.getPropertyValue('--slot')) || 0;
+                openW = Math.max(openW, parseFloat(hit.style.getPropertyValue('--open-w')) || 0);
+              });
+              if (rest) month.style.setProperty('--rest-w', rest + 'px');
+              if (openW) month.style.setProperty('--open-w', openW + 'px');
+            });
+          }
+          var pointer = { x: 0, y: 0 };
+          function track(event) {
+            if (!event || typeof event.clientX !== 'number') return;
+            pointer.x = event.clientX;
+            pointer.y = event.clientY;
+          }
+          function overPad(hit) {
+            var r = hit.getBoundingClientRect();
+            return pointer.x >= r.left && pointer.x <= r.right && pointer.y >= r.top && pointer.y <= r.bottom;
+          }
+          document.querySelectorAll('.spine__jump').forEach(function (btn) {
+            btn.addEventListener('click', function (event) {
+              var id = btn.getAttribute('data-spine-target');
+              var target = id && document.getElementById(id);
+              if (!target) return;
+              event.preventDefault();
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              var hit = btn.closest('.spine__hit');
+              if (hit) {
+                hit.classList.remove('is-open');
+                hit.classList.add('is-dismissed');
+              }
+              btn.blur();
+            });
+          });
+          var nav = document.querySelector('.spine');
+          if (!nav) return;
+          function closeIfLeft(hit) {
+            window.requestAnimationFrame(function () {
+              if (hit.classList.contains('is-dismissed')) {
+                hit.classList.remove('is-open');
+                return;
+              }
+              if (overPad(hit) || hit.matches(':hover') || hit.matches(':focus-within')) return;
+              hit.classList.remove('is-open');
+            });
+          }
+          nav.addEventListener('pointerover', function (event) {
+            track(event);
+            var hit = event.target.closest && event.target.closest('.spine__hit');
+            if (!hit || hit.classList.contains('is-dismissed') || hit.classList.contains('is-open')) return;
+            nav.querySelectorAll('.spine__hit.is-open').forEach(function (other) {
+              other.classList.remove('is-open');
+            });
+            hit.classList.add('is-open');
+          });
+          nav.addEventListener('pointerout', function (event) {
+            track(event);
+            var hit = event.target.closest && event.target.closest('.spine__hit');
+            if (!hit) return;
+            var to = event.relatedTarget;
+            if (to && hit.contains(to)) return;
+            if (hit.classList.contains('is-dismissed')) hit.classList.remove('is-dismissed');
+            closeIfLeft(hit);
+          });
+          nav.addEventListener('pointermove', track);
+          nav.addEventListener('focusin', function (event) {
+            var hit = event.target.closest && event.target.closest('.spine__hit');
+            if (!hit || hit.classList.contains('is-dismissed')) return;
+            hit.classList.add('is-open');
+          });
+          nav.addEventListener('focusout', function (event) {
+            var hit = event.target.closest && event.target.closest('.spine__hit');
+            if (!hit) return;
+            closeIfLeft(hit);
+          });
+          window.addEventListener('resize', function () { pinSpine(); layout(); });
+          pinSpine();
+          layout();
+        })();
+      </script>
+      <ol class="tl">
+        {entries.map((e, i) => {
+          const Tag = e.href ? 'a' : 'div';
+          return (
+            <li id={entryAnchor(e)}>
+              <Tag class:list={['tl__row', e.cover ? 'tl__row--cover' : 'tl__row--text']} href={e.href ?? undefined}>
+                {e.cover ? (
+                  <div class:list={['tl__media', e.cover.needsMatte && 'matte']}>
+                    <Img src={e.cover.relUrl} width={900} eager={i === 0} />
+                  </div>
+                ) : (
+                  e.period && <p class="tl__period tl__period--side">{e.period}</p>
+                )}
+                <div class="tl__text">
+                  <h2 class="tl__title">{e.title}</h2>
+                  {e.cover && e.period && <p class="tl__period">{e.period}</p>}
+                  {e.bodyHtml && <p class="tl__body" set:html={e.bodyHtml} />}
+                  {e.href && <span class="tl__more">View project →</span>}
+                </div>
+              </Tag>
+            </li>
+          );
+        })}
+      </ol>
+    </>
+  )}
+</BaseLayout>

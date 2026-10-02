@@ -22,5 +22,15 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Content pack staged locally (Castellan commits later)
-# content/ is kept on disk but not in this initial commit
+# Docker/npm cache used by bot builds on tower
+.home/
+.npm-cache/
+
+# Content pack on disk; Castellan commits separately
+content/
+
+# Build-time copy of content into public
+public/content/
+
+# publish-gh-pages.sh worktree scratch
+.home/
