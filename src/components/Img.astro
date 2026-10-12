@@ -1,0 +1,47 @@
+---
+/**
+ * Single-size responsive image: AVIF <source> + WebP <img>, explicit width/height,
+ * lazy by default. SVGs pass through with intrinsic size from their viewBox.
+ */
+import { optimize, svgSize } from '../lib/media';
+
+interface Props {
+  src: string;
+  /** Output width in px (use ~2x the CSS display width for small thumbs). */
+  width: number;
+  /** Optional crop box height (relative to `width`). */
+  height?: number;
+  alt?: string;
+  eager?: boolean;
+  class?: string;
+}
+const { src, width, height, alt = '', eager = false, class: cls } = Astro.props;
+const opt = await optimize(src, width, height);
+const svg = !opt ? svgSize(src) : null;
+const loading = eager ? 'eager' : 'lazy';
+---
+{opt ? (
+  <picture>
+    <source type="image/avif" srcset={opt.avif} />
+    <img
+      class={cls}
+      src={opt.webp}
+      alt={alt}
+      width={opt.width}
+      height={opt.height}
+      loading={loading}
+      decoding="async"
+      fetchpriority={eager ? 'high' : undefined}
+    />
+  </picture>
+) : (
+  <img
+    class={cls}
+    src={src}
+    alt={alt}
+    width={svg?.width}
+    height={svg?.height}
+    loading={loading}
+    decoding="async"
+  />
+)}

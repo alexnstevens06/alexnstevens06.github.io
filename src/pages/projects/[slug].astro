@@ -1,0 +1,118 @@
+---
+import path from 'node:path';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TodoBox from '../../components/TodoBox.astro';
+import Img from '../../components/Img.astro';
+import { PROJECTS, getProjectBySlug } from '../../lib/projects';
+import { loadProject, syncContentToPublic } from '../../lib/content';
+import { largeHref, optimize } from '../../lib/media';
+
+export function getStaticPaths() {
+  return PROJECTS.map((p) => ({ params: { slug: p.slug } }));
+}
+
+syncContentToPublic();
+const { slug } = Astro.params;
+const def = getProjectBySlug(slug!);
+if (!def) {
+  return Astro.redirect('/');
+}
+const project = await loadProject(def);
+const description = project.hook || project.summary || `${project.title} — project page.`;
+const coverName = project.cover?.name || null;
+const stem = (n: string) => path.basename(n, path.extname(n)).toLowerCase();
+const coverStem = coverName ? stem(coverName) : null;
+
+/** Videos only on splendid-hopper; each uses its `<stem>_still.*` image (or the cover) as poster. */
+const allowVideo = slug === 'splendid-hopper';
+const images = project.media.filter((m) => m.kind === 'image');
+const videos = allowVideo ? project.media.filter((m) => m.kind === 'video') : [];
+const posterFor = (v: (typeof videos)[number]) =>
+  images.find((m) => stem(m.name) === `${stem(v.name)}_still`) || project.cover;
+const videoItems = await Promise.all(
+  videos.map(async (v) => {
+    const poster = posterFor(v);
+    const opt = poster ? await optimize(poster.relUrl, 800) : null;
+    return { v, poster: opt };
+  }),
+);
+const posterNames = new Set(videos.map((v) => posterFor(v)?.name).filter(Boolean));
+const galleryImages = images.filter((m) => m.name !== coverName && !posterNames.has(m.name));
+const galleryItems = await Promise.all(
+  galleryImages.map(async (m) => ({ m, href: await largeHref(m.relUrl) })),
+);
+/** Skip a diagram that is the same figure as the cover (e.g. architecture.svg vs architecture.png). */
+const diagrams = project.diagrams.filter((d) => d.name !== coverName && stem(d.name) !== coverStem);
+const useMatte = slug === 'ignite' || galleryImages.some((m) => m.needsMatte) || project.cover?.needsMatte;
+---
+<BaseLayout title={project.title} description={description}>
+  <p class="crumb"><a href="/">Timeline</a> / {project.title}</p>
+  <h1>{project.title}</h1>
+  {project.statusLabel && <p><span class="badge">{project.statusLabel}</span></p>}
+  {project.hook && <p class="lede">{project.hook}</p>}
+
+  {!project.hasContent && (
+    <TodoBox
+      message={`content pending — add content/projects/${def.slug}/README.md (and optional images).`}
+    />
+  )}
+
+  {project.cover && (
+    <figure class:list={['project-cover', (project.cover.needsMatte || slug === 'ignite') && 'matte']}>
+      <Img src={project.cover.relUrl} width={800} eager />
+    </figure>
+  )}
+
+  {project.bodyHtml && <article class="prose" set:html={project.bodyHtml} />}
+
+  {diagrams.length > 0 && (
+    <section aria-labelledby="diagrams-heading">
+      <h2 id="diagrams-heading">Diagrams</h2>
+      {diagrams.map((d) => (
+        <figure class="project-cover">
+          <Img src={d.relUrl} width={800} alt={`${project.title} — ${d.name}`} />
+          <figcaption>{d.name}</figcaption>
+        </figure>
+      ))}
+    </section>
+  )}
+
+  {videoItems.length > 0 && (
+    <section aria-labelledby="video-heading">
+      <h2 id="video-heading">Video</h2>
+      <div class="gallery gallery--wide">
+        {videoItems.map(({ v, poster }) => (
+          <figure>
+            <video
+              controls
+              preload="none"
+              playsinline
+              poster={poster?.webp}
+              width={poster?.width}
+              height={poster?.height}
+            >
+              <source src={v.relUrl} type="video/mp4" />
+            </video>
+            <figcaption>{v.name}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {galleryItems.length > 0 && (
+    <section aria-labelledby="media-heading">
+      <h2 id="media-heading">Media</h2>
+      <ul class:list={['gallery', useMatte && 'gallery--matte']}>
+        {galleryItems.map(({ m, href }) => (
+          <li>
+            <a href={href} class:list={[m.needsMatte && 'matte']}>
+              <Img src={m.relUrl} width={400} alt={m.name} />
+            </a>
+            <span class="gallery__cap" aria-hidden="true">{m.name}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>
