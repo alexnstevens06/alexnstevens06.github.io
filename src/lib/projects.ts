@@ -56,11 +56,6 @@ export const PROJECTS: ProjectDef[] = [
     folders: ['projects/lucidscan', 'lucidscan', 'LucidScan'],
   },
   {
-    slug: 'ignite',
-    title: 'SEC Ignite — LiteLock',
-    folders: ['projects/ignite', 'timeline/ignite', 'ignite'],
-  },
-  {
     slug: 'ecen-350-cpu',
     title: 'ECEN 350 CPU',
     folders: [
