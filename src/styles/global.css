@@ -356,3 +356,55 @@ a.tl__row:hover .tl__title { color: var(--accent); }
   white-space: nowrap;
 }
 .tl > li { scroll-margin-top: 0.75rem; }
+
+/* Narrow screens: the rotated month scale needs ~1000px, so below 760px the spine
+   becomes a wrapped row of upright, tappable chips (oldest first) with no axis. */
+@media (max-width: 759.98px) {
+  .spine,
+  .spine ol {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  .spine { padding-bottom: 0; overflow: visible; }
+  .spine ol { flex-wrap: wrap; align-items: center; gap: 0.4rem; border-bottom: 0; }
+  .spine__month,
+  .spine__entries { display: contents; }
+  .spine__axis-tick,
+  .spine__axis-label { display: none; }
+  .spine .spine__hit,
+  .spine:has(.spine__hit.is-open) .spine__hit {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .spine__hit::before { content: none; }
+  .spine__sq { position: static; }
+  .spine .spine__spin,
+  .spine .spine__hit .spine__spin {
+    position: relative;
+    left: auto !important;
+    transform: none !important;
+    transition: none;
+    max-width: 100%;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border-color: var(--border);
+    background: var(--bg-elevated);
+  }
+  .spine__label { font-size: 0.85rem; white-space: normal; }
+  .spine .spine__hit .spine__jump {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip: auto;
+    opacity: 0;
+  }
+  .spine__hit:focus-within .spine__spin { outline: 3px solid var(--accent); outline-offset: 2px; }
+}
+/* Long bare URLs in project prose wrap instead of widening the page on phones. */
+.prose a { overflow-wrap: anywhere; }
