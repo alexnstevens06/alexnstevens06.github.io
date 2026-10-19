@@ -10,7 +10,7 @@ cover: ecen350-datapath.png
 
 Course lab series (ECEN 350) culminating in a single-cycle processor (`SingleCycleProc.v` and friends). **This portfolio page deliberately omits solution dumps.** The diagram below is my own redrawn datapath sketch for the site, not a copy of lab keys.
 
-The GitHub repo `ECEN_350_Lab` is currently public; that is an academic-integrity risk and should probably be privatized.
+The lab repo `ECEN_350_Lab` is private (course work).
 
 ## My role
 
