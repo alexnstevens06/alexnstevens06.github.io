@@ -59,7 +59,7 @@ const useMatte = slug === 'ignite' || galleryImages.some((m) => m.needsMatte) ||
 
   {project.cover && (
     <figure class:list={['project-cover', (project.cover.needsMatte || slug === 'ignite') && 'matte']}>
-      <Img src={project.cover.relUrl} width={800} eager />
+      <Img src={project.cover.relUrl} width={800} eager alt={`${project.title} cover image`} />
     </figure>
   )}
 
@@ -107,7 +107,7 @@ const useMatte = slug === 'ignite' || galleryImages.some((m) => m.needsMatte) ||
         {galleryItems.map(({ m, href }) => (
           <li>
             <a href={href} class:list={[m.needsMatte && 'matte']}>
-              <Img src={m.relUrl} width={400} alt={m.name} />
+              <Img src={m.relUrl} width={400} alt={`${project.title} figure`} />
             </a>
             <span class="gallery__cap" aria-hidden="true">{m.name}</span>
           </li>

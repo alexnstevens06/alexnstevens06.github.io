@@ -3,7 +3,7 @@
  * Single-size responsive image: AVIF <source> + WebP <img>, explicit width/height,
  * lazy by default. SVGs pass through with intrinsic size from their viewBox.
  */
-import { optimize, svgSize } from '../lib/media';
+import { optimize, svgSize, altFor } from '../lib/media';
 
 interface Props {
   src: string;
@@ -15,7 +15,9 @@ interface Props {
   eager?: boolean;
   class?: string;
 }
-const { src, width, height, alt = '', eager = false, class: cls } = Astro.props;
+const { src, width, height, eager = false, class: cls } = Astro.props;
+// Descriptive alt from content/ALT.md wins; then the caller's fallback; '' only if neither exists.
+const alt = altFor(src) ?? Astro.props.alt ?? '';
 const opt = await optimize(src, width, height);
 const svg = !opt ? svgSize(src) : null;
 const loading = eager ? 'eager' : 'lazy';

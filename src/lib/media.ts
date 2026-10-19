@@ -21,6 +21,24 @@ function relPath(relUrl: string): string {
   return decodeURIComponent(relUrl.replace(/^\/content\//, ''));
 }
 
+let altMap: Map<string, string> | null = null;
+/** Alt text from content/ALT.md (`- \`rel/path.png\` — text`), keyed by content-relative path. */
+export function altFor(relUrl: string): string | undefined {
+  if (!altMap) {
+    altMap = new Map();
+    try {
+      const raw = fs.readFileSync(path.join(CONTENT_ROOT, 'ALT.md'), 'utf8');
+      for (const line of raw.split(/\r?\n/)) {
+        const m = line.match(/^\s*-\s*`([^`]+)`\s*[—-]+\s*(.+?)\s*$/);
+        if (m) altMap.set(m[1].replace(/^\/?(content\/)?/, ''), m[2]);
+      }
+    } catch {
+      /* no ALT.md */
+    }
+  }
+  return altMap.get(relPath(relUrl));
+}
+
 export function rasterMeta(relUrl: string): ImageMetadata | null {
   return rasters[`/content/${relPath(relUrl)}`]?.default ?? null;
 }

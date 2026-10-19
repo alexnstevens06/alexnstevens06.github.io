@@ -42,7 +42,7 @@ function spineLabel(title: string): string {
   if (t.startsWith("lucidscan")) return "LucidScan";
   if (t.startsWith("aggie")) return "Aggie Scheduler";
   if (t.includes("lunabotics")) return "Lunabotics";
-  if (t.startsWith("imm ")) return "IMM tooling";
+  if (t.startsWith("imm ")) return "IMM Research";
   if (t.includes("build4good") || t.includes("pokerbot")) return "Build4Good";
   if (t.includes("mittic")) return "MITTIC";
   if (t.includes("ignite")) return "Ignite";
@@ -334,7 +334,7 @@ for (let m = startM; m <= endM; m++) {
               <Tag class:list={['tl__row', e.cover ? 'tl__row--cover' : 'tl__row--text']} href={e.href ?? undefined}>
                 {e.cover ? (
                   <div class:list={['tl__media', e.cover.needsMatte && 'matte']}>
-                    <Img src={e.cover.relUrl} width={900} eager={i === 0} />
+                    <Img src={e.cover.relUrl} width={900} eager={i === 0} alt={`${e.title} image`} />
                   </div>
                 ) : (
                   e.period && <p class="tl__period tl__period--side">{e.period}</p>
