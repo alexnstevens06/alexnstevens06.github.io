@@ -6,7 +6,7 @@ period: Sep 2026 to present
 cover: projects/polite/chip.png
 link: projects/polite
 
-Joined Rev Silicon, the Texas A&M first-chip tapeout effort. I am designing POLITE, a 4x4 int8 matrix unit for Tiny Tapeout, with a cycle-accurate C golden model and matching SystemVerilog RTL. The pad-clock target is 66 MHz (15.15 ns) for STA and the pin budget, not a measured clock. At that target the chip takes 2 bytes in per beat, 132000000 bytes/s.
+Joined Rev Silicon, the Texas A&M first-chip tapeout effort. I am designing POLITE, a 4x4 int8 matrix unit for Tiny Tapeout: 16 PEs with 2 MACs each, single-edge clocking, a cycle-accurate C golden model and matching Verilog RTL. Results leave on a rising-edge decimate-by-2 output, one byte every 2 clocks, to stay within the 33 MHz pad-out rating. The 66 MHz clock is an STA and pin-budget target, not a measured clock.
 
 ### JBL Charge 5 BLE protocol
 date: 2026-08-30
@@ -64,13 +64,13 @@ link: projects/study-lens
 
 A minimal drawing app with no LLM.
 
-### LucidScan, local authenticity checks (hackathon)
+### LucidScan, Chrome extension prototype (hackathon)
 date: 2025-10-25
 period: Oct 2025
 cover: projects/lucidscan/lucidscan-mark.jpg
 link: projects/lucidscan
 
-Hackathon build: a Chrome extension plus a local Python server that scores text, images, and video for authenticity on-device.
+LucidScan is a Chrome extension prototype, grown from a TIDALHack 25 project, that adds local-score badges to images and selected text on sites you enable. It runs open models (TMR text detector, CLIP ViT-B/32) entirely in your browser; the score is a signal, not an authenticity verdict.
 
 ### Aggie Scheduler, Qt course planner
 date: 2025-09-26
@@ -82,13 +82,13 @@ CSCE 120 honors project: a Qt6 desktop app for classes, descriptions, and prereq
 
 ### NASA Lunabotics, command and data handling (TAMU SEDS)
 date: 2025-09-18
-period: Sep 2025 to present
+period: Sep 2025 to Dec 2025
 cover: timeline/thumbs/lunabotics-cdh.png
 link: none
 
-Joined the SEDS Lunabotics CDH subteam, which handles command and data handling for the robot in the NASA Lunabotics competition.
+Was on the SEDS Lunabotics CDH subteam from September to December 2025, which handled command and data handling for the robot in the NASA Lunabotics competition.
 
-### IMM Research tooling
+### IMM Research: Automation Intern
 date: 2025-05-08
 period: May 2025 to Aug 2025
 cover: timeline/thumbs/imm-research-tooling.png
