@@ -26,8 +26,19 @@ Thumbs.db
 .home/
 .npm-cache/
 
-# Content pack on disk; Castellan commits separately
-content/
+# content/ is committed (see CONTENT_SOURCE.md). Private notes and unused or
+# never-published originals stay on disk only:
+content/timeline/EVIDENCE.md
+content/SOURCES.md
+content/MANIFEST.md
+content/timeline.old.md
+content/about/headshot_original.jpg
+content/about/headshot_alt.jpg
+content/projects/comparator/research_case.jpg
+content/projects/comparator/research_list.jpg
+content/projects/comparator/research_map.jpg
+content/projects/comparator/alerts.jpg
+content/projects/comparator/groups.jpg
 
 # Build-time copy of content into public
 public/content/
