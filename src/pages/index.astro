@@ -321,9 +321,28 @@ for (let m = startM; m <= endM; m++) {
             if (!hit) return;
             closeIfLeft(hit);
           });
-          window.addEventListener('resize', function () { pinSpine(); layout(); });
+          // Quarter labels sit under months that can be squeezed to ~0px; drop any label
+          // that would collide with the previous one so they never overlap at any width.
+          function thinAxisLabels() {
+            var shownRight = -Infinity;
+            document.querySelectorAll('.spine__axis-label').forEach(function (label) {
+              var tick = label.previousElementSibling;
+              label.style.visibility = '';
+              if (tick) tick.style.visibility = '';
+              var r = label.getBoundingClientRect();
+              if (r.width === 0) return;
+              if (r.left < shownRight + 6) {
+                label.style.visibility = 'hidden';
+                if (tick) tick.style.visibility = 'hidden';
+              } else {
+                shownRight = r.right;
+              }
+            });
+          }
+          window.addEventListener('resize', function () { pinSpine(); layout(); thinAxisLabels(); });
           pinSpine();
           layout();
+          thinAxisLabels();
         })();
       </script>
       <ol class="tl">

@@ -357,9 +357,10 @@ a.tl__row:hover .tl__title { color: var(--accent); }
 }
 .tl > li { scroll-margin-top: 0.75rem; }
 
-/* Narrow screens: the rotated month scale needs ~1000px, so below 760px the spine
-   becomes a wrapped row of upright, tappable chips (oldest first) with no axis. */
-@media (max-width: 759.98px) {
+/* Narrow screens: the rotated month scale needs ~1090px of viewport (measured: page
+   scrollWidth 1083-1088 at 760-1000px), so below 1100px the spine becomes a wrapped row
+   of upright, tappable chips (oldest first) with no axis. */
+@media (max-width: 1099.98px) {
   .spine,
   .spine ol {
     height: auto !important;
