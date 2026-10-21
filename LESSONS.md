@@ -13,3 +13,7 @@ Read this file before each design step, and add new lessons here, dated, with a 
 - [measured] Images ship as build-time AVIF/WebP with no raw originals, and every image needs descriptive alt text (content/ALT.md).
 - [assumption] Timeline/project wording (e.g. LucidScan, POLITE) is approved by Alex before publishing, as the "approved LucidScan wording" commit suggests.
 - [assumption] Mark historical figures as historical rather than deleting them (POLITE dual-edge figure precedent).
+
+## PAUSED 2026-10-21
+
+- Alex paused personal-site work on 2026-10-21. Nothing in progress here; the source is in ~/portfolio-work/site-fixes on tower.
