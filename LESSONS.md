@@ -15,3 +15,7 @@ Read this file before each design step, and add new lessons here, dated, with a 
 - [assumption] Mark historical figures as historical rather than deleting them (POLITE dual-edge figure precedent).
 
 - [measured] 2026-10-20: The rotated timeline spine needs ~1090px of viewport (page scrollWidth 1083-1088 at 760-1000px). D1 switched to chips only below 760px, so 760-1099px overflowed (Delver S1); the chip breakpoint is now 1099.98px. Measure the real overflow threshold with a width sweep instead of picking a round breakpoint, and test the quarter axis labels at desktop widths too (S2: Jul/Oct 2024 overlapped at 768 and 1280).
+
+## PAUSED 2026-10-21
+
+- Alex paused personal-site work on 2026-10-21. Nothing in progress here; the source is in ~/portfolio-work/site-fixes on tower.
