@@ -1,0 +1,37 @@
+---
+import Img from './Img.astro';
+import type { HomeEntry } from '../lib/content';
+import { entryAnchor } from '../lib/spine';
+import { isPhotograph } from '../lib/photo';
+
+interface Props {
+  entries: HomeEntry[];
+}
+
+const { entries } = Astro.props;
+---
+
+<ol class="entries">
+  {
+    entries.map((entry) => (
+      <li class="entry" id={entryAnchor(entry)}>
+        <p class="entry__when">{entry.period}</p>
+        <h2 class="entry__title">
+          {entry.href ? <a href={entry.href}>{entry.title}</a> : entry.title}
+        </h2>
+        {entry.cover && (
+          <figure
+            class:list={[
+              'plate',
+              isPhotograph(entry.cover.relUrl) && 'plate--photo',
+              entry.cover.needsMatte && 'plate--matte',
+            ]}
+          >
+            <Img src={entry.cover.relUrl} width={1200} alt={`${entry.title} image`} />
+          </figure>
+        )}
+        {entry.bodyHtml && <p class="entry__body" set:html={entry.bodyHtml} />}
+      </li>
+    ))
+  }
+</ol>

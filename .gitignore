@@ -22,5 +22,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Content pack staged locally (Castellan commits later)
-# content/ is kept on disk but not in this initial commit
+# content/ is committed. It is the source for the static pages.
+# sync-content copies videos and SVGs here at build time.
+public/content/

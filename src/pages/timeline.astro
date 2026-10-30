@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TodoBox from '../components/TodoBox.astro';
+import Rule from '../components/Rule.astro';
+import Entries from '../components/Entries.astro';
+import { loadBioLine, loadHomeTimeline } from '../lib/content';
+import { buildSpine } from '../lib/spine';
+
+const entries = await loadHomeTimeline();
+const spine = buildSpine(entries);
+const description = loadBioLine() || 'Timeline of work and projects.';
+---
+
+<BaseLayout title="Timeline" description={description}>
+  <h1 class="page-title">Timeline</h1>
+  {
+    entries.length === 0 ? (
+      <TodoBox message="content pending — add content/timeline.md." />
+    ) : (
+      <>
+        <Rule marks={spine.marks} years={spine.years} hrefPrefix="" quiet />
+        <Entries entries={entries} />
+      </>
+    )
+  }
+</BaseLayout>

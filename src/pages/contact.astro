@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { loadAbout, loadBioLine } from '../lib/content';
+
+const about = await loadAbout();
+const bioLine = loadBioLine();
+const rows = [
+  ...(about.email ? [{ label: 'Email', href: `mailto:${about.email}` }] : []),
+  ...about.links,
+  ...(about.resumeHref ? [{ label: 'Resume', href: about.resumeHref }] : []),
+];
+---
+
+<BaseLayout title="Contact" description={bioLine || 'Contact Alex Stevens.'}>
+  <h1 class="page-title">Contact</h1>
+  {bioLine && <p class="dek">{bioLine}</p>}
+  {
+    rows.length > 0 && (
+      <ul class="contact-list">
+        {rows.map((row) => (
+          <li>
+            <a href={row.href} rel={row.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+              <span class="contact-list__label">{row.label}</span>
+              <span class="contact-list__href">{row.href.replace(/^mailto:/, '')}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>

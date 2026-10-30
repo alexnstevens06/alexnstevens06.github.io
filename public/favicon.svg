@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AS">
+  <style>
+    .paper { fill: #f4f1ea; }
+    .ink { fill: none; stroke: #1c1915; }
+    .letters { fill: #1c1915; font-family: Georgia, "Iowan Old Style", serif; font-size: 26px; }
+    @media (prefers-color-scheme: dark) {
+      .paper { fill: #141311; }
+      .ink { stroke: #ece7dc; }
+      .letters { fill: #ece7dc; }
+    }
+  </style>
+  <rect class="paper" width="64" height="64"/>
+  <rect class="ink" x="1.5" y="1.5" width="61" height="61" stroke-width="1"/>
+  <text class="letters" x="32" y="40" text-anchor="middle">AS</text>
+</svg>
