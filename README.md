@@ -4,34 +4,39 @@ Personal site for Alex Stevens, served by GitHub Pages from the root of `main` a
 
 ## What is in this branch
 
-`main` holds the built static output of an Astro site, not the Astro source:
+`AS/editorial-mvp` carries both the Astro source and the static files Pages serves:
 
-- `index.html`: the home page, with the timeline and project cards.
-- `projects/<slug>/index.html`: one page per project. `projects/`, `timeline/`, and `contact/` index pages redirect to `/`.
-- `_astro/`: the CSS and the AVIF/WebP images that Astro generated.
-- `content/projects/`: extra media used by project pages.
-- `.nojekyll`: tells GitHub Pages to serve the files as they are, including `_astro/`.
+- `src/`, `content/`, `astro.config.mjs`: the site. Text and images come from `content/`. Nothing in the templates invents a bio or a project.
+- `index.html`, `timeline/`, `projects/`, `contact/`, `_astro/`: the built site at the repository root, which is what GitHub Pages publishes (`.nojekyll` keeps `_astro/`).
+- `content/projects/splendid-hopper/`: the gif and videos those pages reference directly.
 
-The Astro source lives on the `site-v1` branch (draft PR #1).
-
-## Tech
-
-- [Astro](https://astro.build) static site generation, with build-time AVIF/WebP images
-- GitHub Pages hosting with a custom domain
+The editorial skin is variant C from the remodel notes: Fraunces for display, Source Sans 3 for text, hairline rules, greyscale photographs, and one explorable record rule. Diagrams and charts stay in color.
 
 ## Preview locally
 
-No build step is needed for `main`. Serve the repository root with any static file server:
+No build is required to read the site. From the repository root:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000.
+Open http://localhost:8000. Pages: `/`, `/timeline/`, `/projects/`, `/contact/`, and `/projects/<slug>/`.
+
+## Rebuild
+
+Node 22 or newer.
+
+```sh
+npm ci
+npm run build
+npm run publish:root
+```
+
+`npm run build` writes `dist/`. `publish:root` copies the pages and `_astro/` onto the repository root. It leaves `content/`, the source, and repo metadata in place.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `.github/scripts/check_links.py`, which parses every HTML file and fails if a local `href` or `src` points at a file that does not exist in the repo.
+`.github/workflows/ci.yml` runs `.github/scripts/check_links.py`, which parses every HTML file and fails if a local `href` or `src` points at a file that does not exist.
 
 ## License
 

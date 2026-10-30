@@ -1,0 +1,38 @@
+---
+const pathname = Astro.url.pathname;
+
+const items = [
+  { href: '/', label: 'Home' },
+  { href: '/timeline/', label: 'Timeline' },
+  { href: '/projects/', label: 'Projects' },
+  { href: '/contact/', label: 'Contact' },
+];
+
+function isCurrent(href: string): boolean {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(href);
+}
+
+const home = pathname === '/';
+---
+
+<header class="mast">
+  {
+    home ? (
+      <h1 class="mast__name">Alex Stevens</h1>
+    ) : (
+      <a class="mast__name" href="/">
+        Alex Stevens
+      </a>
+    )
+  }
+  <nav class="mast__nav" aria-label="Sections">
+    {
+      items.map((item) => (
+        <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+          {item.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>

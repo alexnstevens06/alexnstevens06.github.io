@@ -1,0 +1,9 @@
+---
+interface Props {
+  message: string;
+}
+const { message } = Astro.props;
+---
+<aside class="todo" role="note">
+  <strong>TODO:</strong> {message}
+</aside>

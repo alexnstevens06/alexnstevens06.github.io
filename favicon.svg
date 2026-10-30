@@ -1,4 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AS">
-  <rect width="64" height="64" rx="14" fill="#0b5fff"/>
-  <text x="32" y="42" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="#fff">AS</text>
+  <style>
+    .paper { fill: #f4f1ea; }
+    .ink { fill: none; stroke: #1c1915; }
+    .letters { fill: #1c1915; font-family: Georgia, "Iowan Old Style", serif; font-size: 26px; }
+    @media (prefers-color-scheme: dark) {
+      .paper { fill: #141311; }
+      .ink { stroke: #ece7dc; }
+      .letters { fill: #ece7dc; }
+    }
+  </style>
+  <rect class="paper" width="64" height="64"/>
+  <rect class="ink" x="1.5" y="1.5" width="61" height="61" stroke-width="1"/>
+  <text class="letters" x="32" y="40" text-anchor="middle">AS</text>
 </svg>

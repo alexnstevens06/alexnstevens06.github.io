@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Img from '../components/Img.astro';
+import Rule from '../components/Rule.astro';
+import { loadAbout, loadBioLine, loadHomeTimeline } from '../lib/content';
+import { buildSpine, entryAnchor } from '../lib/spine';
+
+const about = await loadAbout();
+const bioLine = loadBioLine();
+const entries = await loadHomeTimeline();
+const spine = buildSpine(entries);
+---
+
+<BaseLayout title="Alex Stevens" description={bioLine || 'Alex Stevens.'}>
+  {
+    spine.marks.length > 0 && (
+      <section class="home-rule" aria-labelledby="record-heading">
+        <h2 id="record-heading" class="kicker">
+          Record
+        </h2>
+        <Rule marks={spine.marks} years={spine.years} hrefPrefix="/timeline/" />
+      </section>
+    )
+  }
+
+  <div class="opening">
+    {
+      about.headshotRelUrl && (
+        <figure class="opening__portrait">
+          <Img src={about.headshotRelUrl} width={640} alt="Headshot of Alex Stevens" eager />
+        </figure>
+      )
+    }
+    <div class="opening__bio prose" set:html={about.bioHtml ?? ''} />
+  </div>
+
+  {
+    entries.length > 0 && (
+      <section class="band" aria-labelledby="contents-heading">
+        <h2 id="contents-heading" class="kicker">
+          Contents
+        </h2>
+        <ol class="contents">
+          {entries.map((entry) => (
+            <li>
+              <a href={`/timeline/#${entryAnchor(entry)}`}>
+                <span class="contents__when">{entry.period}</span>
+                <span class="contents__title">{entry.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
+</BaseLayout>

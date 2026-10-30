@@ -1,0 +1,110 @@
+---
+import type { SpineMark, SpineYear } from '../lib/spine';
+
+interface Props {
+  marks: SpineMark[];
+  years: SpineYear[];
+  /** "" on the timeline page (same-page anchors). "/timeline/" from the home page. */
+  hrefPrefix: string;
+  /** Timeline already shows the essay titles, so the slip stays a caption. */
+  quiet?: boolean;
+}
+
+const { marks, years, hrefPrefix, quiet = false } = Astro.props;
+const latest = marks.length > 0 ? marks[marks.length - 1] : null;
+---
+
+{
+  latest && (
+    <nav class:list={['rule', quiet && 'rule--quiet']} data-rule aria-label="Timeline">
+      <p class="rule__slip" aria-hidden="true">
+        <span class="rule__slip-when" data-slip-when>
+          {latest.when}
+        </span>
+        <span class="rule__slip-title" data-slip-title>
+          {latest.title}
+        </span>
+      </p>
+      <ol class="rule__track">
+        {marks.map((mark) => (
+          <li style={`--at: ${mark.at}`}>
+            <a
+              class="rule__mark"
+              data-rule-mark
+              href={`${hrefPrefix}#${mark.id}`}
+              data-when={mark.when}
+              data-title={mark.title}
+              aria-current={mark.id === latest.id ? 'true' : undefined}
+            >
+              <span class="rule__tick" aria-hidden="true" />
+              <span class="rule__when">{mark.when}</span>
+              <span class="rule__name">{mark.title}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <div class="rule__years" aria-hidden="true">
+        {years.map((year) => (
+          <span style={`--at: ${year.at}`}>{year.year}</span>
+        ))}
+      </div>
+      <p class="rule__hint">Arrow keys move along the record.</p>
+    </nav>
+  )
+}
+
+<script is:inline>
+  (function () {
+    var script = document.currentScript;
+    var root = script && script.previousElementSibling;
+    if (!root || !root.matches || !root.matches('[data-rule]')) {
+      root = document.querySelector('[data-rule]');
+    }
+    if (!root) return;
+    var marks = Array.prototype.slice.call(root.querySelectorAll('[data-rule-mark]'));
+    var whenEl = root.querySelector('[data-slip-when]');
+    var titleEl = root.querySelector('[data-slip-title]');
+    if (!marks.length || !whenEl || !titleEl) return;
+
+    function show(mark) {
+      for (var i = 0; i < marks.length; i++) {
+        if (marks[i] === mark) marks[i].setAttribute('aria-current', 'true');
+        else marks[i].removeAttribute('aria-current');
+      }
+      whenEl.textContent = mark.getAttribute('data-when') || '';
+      titleEl.textContent = mark.getAttribute('data-title') || '';
+    }
+
+    root.addEventListener('pointerover', function (event) {
+      var mark = event.target.closest && event.target.closest('[data-rule-mark]');
+      if (mark && root.contains(mark)) show(mark);
+    });
+    root.addEventListener('focusin', function (event) {
+      var mark = event.target.closest && event.target.closest('[data-rule-mark]');
+      if (mark && root.contains(mark)) show(mark);
+    });
+    root.addEventListener('keydown', function (event) {
+      var key = event.key;
+      var dir = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 0;
+      if (!dir) return;
+      var index = marks.indexOf(document.activeElement);
+      if (index < 0) return;
+      var next = marks[index + dir];
+      if (!next) return;
+      event.preventDefault();
+      next.focus();
+    });
+
+    var hash = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    if (hash) {
+      for (var i = 0; i < marks.length; i++) {
+        var href = marks[i].getAttribute('href') || '';
+        var id = href.slice(href.indexOf('#') + 1);
+        if (id === hash) {
+          show(marks[i]);
+          break;
+        }
+      }
+    }
+  })();
+</script>
